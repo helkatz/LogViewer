@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>images/arrow_sans_down-256.png</file>
+        <file>images/arrow_sans_up-256.png</file>
+        <file>images/icon-close-128.png</file>
+    </qresource>
+</RCC>
