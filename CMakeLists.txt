@@ -1,0 +1,71 @@
+include("c:/data/repos/binaries/cmake/helper.cmake")
+cmake_minimum_required(VERSION 2.8)
+
+project(LogViewer)# VERSION 1.2.3.4 LANGUAGES C CXX)
+enable_testing()
+
+
+message(LogViewer)
+#add_package(${PROJECT_NAME} common 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/common/*/")
+#return()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+if(MSVC)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /MP /Zi /DEBUG")
+	SET(CMAKE_LINKER_FLAGS "${CMAKE_CXX_FLAGS} /DEBUG")
+else()
+	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -Wall -std=c++1z -static-libstdc++ -Wno-error=unused -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-error=deprecated-declarations -Wno-deprecated")
+	SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wall -std=c++1z -static-libstdc++ -Wno-error=unused -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-error=deprecated-declarations -Wno-deprecated")
+endif()
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+
+
+message(${PROJECT_SOURCE_DIR})
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+#file(GLOB_RECURSE sources forms/*)
+#file(GLOB_RECURSE sources languages/*)
+file(GLOB_RECURSE sources main/* languages/* forms/* utils/*)
+##file(GLOB_RECURSE ui_files *.ui)
+#find_package(Qt5)
+find_package(Qt5Widgets)
+find_package(Qt5Sql)
+#find_package(logger)
+#find_package(logger 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/logger/*/")
+
+include(external/re2.cmake)
+include(external/boost.cmake)
+add_subdirectory(internal/logger)
+
+add_executable(LogViewer ${sources})
+
+SOURCE_GROUP_BY_FOLDER(sources)
+
+target_include_directories(LogViewer PUBLIC main/include)
+target_include_directories(LogViewer PUBLIC .)
+target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql logger re2 boost)
+IF(WIN32) # Check if we are on Windows
+  if(MSVC) # Check if we are using the Visual Studio compiler
+    set_target_properties(LogViewer PROPERTIES 
+		LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS"
+		LINK_FLAGS_DEBUG "/SUBSYSTEM:WINDOWS")
+  elseif(CMAKE_COMPILER_IS_GNUCXX)
+    # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows") # Not tested
+  else()
+    message(SEND_ERROR "You are using an unsupported Windows compiler! (Not MSVC or GCC)")
+  endif()
+elseif(UNIX)
+  # Nothing special required
+else()
+  message(SEND_ERROR "You are on an unsupported platform! (Not Win32 or Unix)")
+ENDIF()
+
+set(Qt5_RUNTIME_LIBRARY_DIRS c:/qt/5.7/msvc2015/bin)
+#add_custom_command(COMMAND set "PATH=${Qt5_RUNTIME_LIBRARY_DIRS};%PATH%"
+#                   COMMAND TableGenerator "${CMAKE_CURRENT_BINARY_DIR}/Table.h"
+#                   DEPENDS TableGenerator
+#)
+
