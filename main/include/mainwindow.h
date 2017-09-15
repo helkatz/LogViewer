@@ -60,6 +60,8 @@ private slots:
 
     void on_actionFile_Log_triggered();
 
+	void on_actionLogstash_triggered();
+
 	void on_actionTabbed_toggled(bool);
 private:
     Ui::MainWindow *ui;

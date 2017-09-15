@@ -285,12 +285,12 @@ namespace utils
 			if (QSqlDatabase::contains(name) == false) {
 				Settings settings;
 				db = QSqlDatabase::addDatabase(
-					driver.length() ? driver : settings.connections(name).driver(),
+					driver.length() ? driver : settings.connections().database(name).driver(),
 					name);
-				db.setDatabaseName(settings.connections(name).database());
-				db.setHostName(settings.connections(name).host());
-				db.setUserName(settings.connections(name).username());
-				db.setPassword(settings.connections(name).password());
+				db.setDatabaseName(settings.connections().database(name).database());
+				db.setHostName(settings.connections().database(name).host());
+				db.setUserName(settings.connections().database(name).username());
+				db.setPassword(settings.connections().database(name).password());
 			}
 			else
 				db = QSqlDatabase::database(name);

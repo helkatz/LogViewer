@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "generellwidget.h"
 #include "connectionswidget.h"
+#include "connections_logstash_widget.h"
 #include "templateswidget.h"
 #include "columnizerwidget.h"
 
@@ -14,6 +15,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     ui->setupUi(this);
 	ui->tabWidget->addTab(new GenerellWidget(), tr("Generell"));
     ui->tabWidget->addTab(new ConnectionsWidget(), tr("Connections"));
+	ui->tabWidget->addTab(new ConnectionsLogstashWidget(), tr("Logstash Connections"));
     ui->tabWidget->addTab(new TemplatesWidget(), tr("Templates"));
 	ui->tabWidget->addTab(new ColumnizerWidget(), tr("Columnizer"));
 }

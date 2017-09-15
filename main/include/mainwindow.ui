@@ -102,7 +102,7 @@
      <x>0</x>
      <y>0</y>
      <width>1017</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="nativeMenuBar">
@@ -118,6 +118,7 @@
      </property>
      <addaction name="actionDatabase_Log"/>
      <addaction name="actionFile_Log"/>
+     <addaction name="actionLogstash"/>
     </widget>
     <addaction name="menuOpen"/>
     <addaction name="actionClose"/>
@@ -256,6 +257,11 @@
    </property>
    <property name="text">
     <string>Tabbed</string>
+   </property>
+  </action>
+  <action name="actionLogstash">
+   <property name="text">
+    <string>Logstash</string>
    </property>
   </action>
  </widget>

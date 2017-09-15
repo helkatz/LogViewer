@@ -356,6 +356,19 @@ void MainWindow::on_actionFile_Log_triggered()
     }
 }
 
+void MainWindow::on_actionLogstash_triggered()
+{
+	QFileDialog d;
+	Settings s;
+	QStringList fileNames = d.getOpenFileNames();
+	foreach(QString fileName, fileNames) {
+		FileConditions qc;
+		qc.fileName(fileName);
+		qc.modelClass("LogFileModel");
+		createLogView(qc, true);
+	}
+}
+
 void MainWindow::on_actionTabbed_toggled(bool enable)
 {
 	setTabbedView(enable);

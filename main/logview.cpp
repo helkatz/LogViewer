@@ -1,6 +1,7 @@
 #include "logview.h"
 #include "logsqlmodel.h"
 #include "logfilemodel.h"
+#include "logstashmodel.h"
 #include "mainwindow.h"
 #include "forms/finddialog.h"
 #include "signalmapper.h"
@@ -877,6 +878,8 @@ LogWindow *LogWindow::create(Conditions qc, bool useTemplate)
 				model = new LogModel(NULL);
 			else if (qc.modelClass() == "LogFileModel")
 				model = new LogFileModel(NULL);
+			else if (qc.modelClass() == "LogStashModel")
+				model = new LogStashModel(NULL);
 			else
 				throw std::exception("invalid modelClass");
 			model->setQueryConditions(qc);
