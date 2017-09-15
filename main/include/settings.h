@@ -192,13 +192,20 @@ public:
 	QStringList childGroups(const QString& group);
 	QStringList childKeys(const QString& group);
 
-	PROPLIST_BEGIN(connections)
-		PROP(QString, driver)
-		PROP(QString, database)
-		PROP(QString, host)
-		PROP(QString, username)
-		PROP(QString, password)
-	PROPLIST_END(connections)
+	PROPCLASS_BEGIN(connections)
+		PROPLIST_BEGIN(database)
+			PROP(QString, driver)
+			PROP(QString, database)
+			PROP(QString, host)
+			PROP(QString, username)
+			PROP(QString, password)
+		PROPLIST_END(database)
+		PROPLIST_BEGIN(logstash)
+			PROP(QString, host)
+			PROP(QString, username)
+			PROP(QString, password)
+		PROPLIST_END(logstash)
+	PROPCLASS_END(connections)
 
 	PROPLIST_BEGIN(columnizer)
 		PROP(QString, startPattern)
