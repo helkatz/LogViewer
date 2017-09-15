@@ -10,7 +10,8 @@ QueryDialog::QueryDialog(QWidget *parent) :
 {
     Settings settings;
     ui->setupUi(this);
-    ui->cbConnection->addItems(settings.childGroups("connections"));
+    ui->cbConnection->addItems(settings.childGroups("connections/database"));
+	ui->cbConnection->addItems(settings.childGroups("connections/logstash"));
     loadFilter();
 }
 
