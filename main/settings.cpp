@@ -5,7 +5,67 @@ bool writeXmlFile(QIODevice &device, const QSettings::SettingsMap &map);
 QString Settings::_organisation;
 QString Settings::_application;
 static const QSettings::Format xmlFormat = QSettings::registerFormat("xml", &readXmlFile, &writeXmlFile);
-static const QString rootName = "config";
+
+PropBaseClass::PropBaseClass(PropBaseClass *parent)
+{ 
+	_parent = parent; 
+}
+
+void PropBaseClass::setBasePath(const QString& path) 
+{
+	if (path.length())
+		_basePath = "/" + path;
+}
+
+void PropBaseClass::setSubPath(const QString& group)
+{
+	_group = "/" + group;
+}
+
+QString PropBaseClass::getPath() const
+{
+	return path();
+}
+
+PropBaseClass *PropBaseClass::root() 
+{
+	PropBaseClass *p = this;
+	while (p && p->_parent)
+		p = p->_parent;
+	return p;
+}
+
+const PropBaseClass *PropBaseClass::root() const
+{
+	return const_cast<PropBaseClass *>(this)->root();
+}
+
+QString PropBaseClass::path() const 
+{
+	QString p = _parent ? _parent->path() + "/" : _basePath;
+	p += name() + _group;
+	return std::move(p);
+}
+
+void PropBaseClass::set(const QString& name, const QVariant& value) 
+{
+	root()->set(path() + "/" + name, value);
+}
+
+QVariant PropBaseClass::get(const QString& name, const QVariant& def) const
+{
+	return root()->get(path() + "/" + name, def);
+}
+
+void PropBaseClass::remove(const QString& name)
+{
+	if (_parent) _parent->remove(name.length() == 0 ? path() : path() + "/" + name);
+}
+
+QString PropBaseClass::name() const 
+{ 
+	return ""; 
+}
 
 bool readXmlFile(QIODevice &device, QSettings::SettingsMap &map)
 {
@@ -109,25 +169,6 @@ void Settings::setApplication(const QString application)
 	_application = application;
 }
 
-class Test : public PropBaseClass
-{
-private: 
-	const QString name() const { return "Test"; }
-public:
-	Test(PropBaseClass *parent) : PropBaseClass(parent) {}
-	void remove() { PropBaseClass::remove(); }
-
-	private: ColorList _colorList; 
-	public: ColorList colorList() { return qvariant_cast<ColorList>(get("colorList")); }
-public: void colorList(ColorList v) { _colorList = v; QVariant var; var.setValue(v); set("colorList", var); }
-
-	private: Test *_Test;
-	public: Test& NAME()
-	{
-		_objectAllocator.allocateObjectOnce<Test, PropBaseClass*>(_Test, this->__castToProp());
-		return *_Test;
-	}
-};
 Settings::Settings(QString basePath):
 	//QSettings("Logviewer.xml", xmlFormat)
 	QSettings(_organisation, _application)
@@ -157,4 +198,27 @@ QStringList Settings::childKeys(const QString &group)
 	QStringList r = QSettings::childKeys();
 	endGroup();
 	return r;
+}
+
+void Settings::set(const QString& name, const QVariant& value)
+{
+	/*qDebug("set %s value=%s",
+	name.toStdString().c_str(),
+	value.toString().toStdString().c_str());*/
+	setValue(name, value);
+}
+
+QVariant Settings::get(const QString& name, const QVariant& def) const
+{
+	QVariant value = QSettings::value(name, def);
+	/*qDebug("read %s value=%s",
+	name.toStdString().c_str(),
+	value.toString().toStdString().c_str());*/
+	return value;
+}
+
+void Settings::remove(const QString& path)
+{
+	qDebug() << "remove" + path;
+	QSettings::remove(path);
 }

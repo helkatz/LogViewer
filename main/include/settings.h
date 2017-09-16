@@ -13,78 +13,35 @@
 #include "forms/colorpicker.h"
 Q_DECLARE_METATYPE(ColorList)
 
-template<class C>
-class Allocator {
-	std::map<void *, C *> _omap;
-public:
-	template<class T>
-	bool validateObject(T *&o) {
-		return _omap.find(&o) != _omap.end();
-	}
-	template<class T>
-	bool allocateObjectOnce(T *&o) {
-		if(!validateObject<T>(o)) {
-			o = new T;
-			_omap[&o] = o;
-		}
-		return true;
-	}
-	template<class T, typename ARG1>
-	bool allocateObjectOnce(T *&o, ARG1 arg1) {
-		if(!validateObject<T>(o)) {
-			o = new T(arg1);
-			_omap[&o] = o;
-		}
-		return true;
-	}
-
-};
 class PropBaseClass
 {
 protected:
-	Allocator<PropBaseClass> _objectAllocator;
 	QString _basePath;
 	QString _group;
 	PropBaseClass *_parent;
-	PropBaseClass *__castToProp() { return this; }
-public:
-	void setBasePath(const QString& path) {
-		if(path.length())
-			_basePath = "/" + path;
-	}
-	QString getPath() {
-		return path();
-	}
 
-	PropBaseClass(PropBaseClass *parent = NULL) { _parent = parent; }
-	void setSubPath(const QString& group) {
-		_group = "/" + group;
-	}
 protected:
-	PropBaseClass *root() {
-		PropBaseClass *p = this;
-		while(p && p->_parent)
-			p = p->_parent;
-		return p;
-	}
+	PropBaseClass *root();
+	const PropBaseClass *root() const;
 
-
-	const QString path() const {
-		QString p = _parent ? _parent->path() + "/" : _basePath;
-		p += name() + _group;
-		return p;
-	}
 public:
-	virtual void set(const QString& name, const QVariant& value) {
-		root()->set(path() + "/" + name, value); }
+	PropBaseClass(PropBaseClass *parent = NULL);
 
-	virtual QVariant get(const QString& name, const QVariant& def = QVariant()) {
-		return root()->get(path() + "/" + name, def); }
-	virtual void remove(const QString& name = "") {
-		if(_parent) _parent->remove(name.length() == 0 ? path() : path() + "/" + name);
-	}
+	void setBasePath(const QString& path);
 
-	virtual const QString name() const { return ""; }
+	void setSubPath(const QString& group);
+
+	QString getPath() const;
+	
+	QString path() const;
+
+	virtual void set(const QString& name, const QVariant& value);
+
+	virtual QVariant get(const QString& name, const QVariant& def = QVariant()) const;
+
+	virtual void remove(const QString& name = "");
+
+	virtual QString name() const;
 };
 
 
@@ -93,16 +50,15 @@ public:
 #define XPROPCLASS_BEGIN(NAME, BASE) \
 public:\
 class NAME##Class: public BASE##Class {\
-	private: const QString name() const { return #NAME; } \
+	private: QString name() const override { return #NAME; } \
 	public:\
 		NAME##Class(PropBaseClass *parent): BASE##Class(parent) {}\
 		void remove() { BASE##Class::remove(); }
 
 #define XPROPCLASS_END(NAME)  }; \
-	private: NAME##Class *_##NAME; \
+	private: NAME##Class _##NAME = NAME##Class(this); \
 	public: NAME##Class& NAME() { \
-		_objectAllocator.allocateObjectOnce<NAME##Class,PropBaseClass*>(_##NAME, this->__castToProp());\
-		return *_##NAME;\
+		return _##NAME;\
 	}
 
 
@@ -134,10 +90,9 @@ class NAME##Class: public BASE##Class {\
 	TYPE##Class& NAME(int group) { NAME().setSubPath(QString("%1").arg(group)); return NAME(); }
 
 #define PROPCLASS(TYPE, NAME) \
-	private: TYPE##Class *_##NAME; \
+	private: TYPE##Class _##NAME = TYPE##Class(this); \
 	public: TYPE##Class& NAME() { \
-		_objectAllocator.allocateObjectOnce<TYPE##Class,PropBaseClass*>(_##NAME, this->__castToProp());\
-		return *_##NAME;\
+		return _##NAME;\
 	}
 
 #define PROP(TYPE, NAME) \
@@ -145,40 +100,15 @@ private: TYPE _##NAME; \
 public: TYPE NAME##() { return qvariant_cast<TYPE>(get(#NAME));} \
 public: void NAME##(TYPE v) { _##NAME = v; QVariant variant; variant.setValue(v); set(#NAME, variant);}
 
-#define PROPUSE(OWNER) \
-	Allocator _objectAllocator;\
-	class PropBaseClass;\
-	private: PropBaseClass *__castToProp() { return &_propBase; }\
-	public: void setBasePath(const QString& basePath) { _propBase.setBasePath(basePath); }\
-	PropBaseClass _propBase;
-
-/*typedef QList<QColor> ColorList;
-Q_DECLARE_METATYPE(ColorList);*/
-
 class Settings : public QSettings, public PropBaseClass
 {
 	Q_OBJECT
 public:
-	virtual void set(const QString& name, const QVariant& value)
-	{
-		/*qDebug("set %s value=%s",
-		   name.toStdString().c_str(),
-		   value.toString().toStdString().c_str());*/
-		setValue(name, value);
-	}
-	virtual QVariant get(const QString& name, const QVariant& def)
-	{
-		QVariant value = QSettings::value(name, def);
-		/*qDebug("read %s value=%s",
-		   name.toStdString().c_str(),
-		   value.toString().toStdString().c_str());*/
-		return value;
-	}
-	void remove(const QString& path)
-	{
-		qDebug() << "remove" +  path;
-		QSettings::remove(path);
-	}
+	void set(const QString& name, const QVariant& value) override;
+
+	QVariant get(const QString& name, const QVariant& def) const override;
+
+	void remove(const QString& path) override;
 
 private:
 	static QString _organisation;
