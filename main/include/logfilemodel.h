@@ -56,27 +56,24 @@ protected:
 
 	virtual int fetchMoreFromEnd(quint32 items);
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const;
-
 public:
     LogFileModel(QObject *parent);
 
-    bool query(const Conditions& qqueryConditions);
+	virtual QString getTitle() const override;
+
+	void writeSettings(const QString& basePath) override;
+
+	void readSettings(const QString& basePath) override;
+
+	bool query(const Conditions& QueryOptions) override;
+
+	virtual QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns,
+		const QString& search, bool regex, bool down) const override;
 
     bool queryWithCondition(QString sqlFilter, int limit);
 
-    void writeSettings(const QString& basePath);
-
-    void readSettings(const QString& basePath);
-
-    QString getTitle() const;
-
-    //void updateRowCount(quint32 maxRows);
-    //QModelIndexList match(const QModelIndex &start, int role, const QVariant &value, int hits, Qt::MatchFlags flags) const;
-
-    QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns, const QString& search, bool regex, bool down) const;
-
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+
 
 private slots:
     void observedObjectChanged(const QString& id, const int maxId);

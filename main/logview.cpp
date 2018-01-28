@@ -75,24 +75,6 @@ bool LogView::eventFilter(QObject *target, QEvent *e)
 	return QTableView::eventFilter(target, e);;
 }
 
-LogItemDelegate::LogItemDelegate(QObject *parent):
-	QStyledItemDelegate(parent)
-{
-
-}
-
-QColor LogItemDelegate::getColorFromString(QString s, bool sameRGB) const
-{
-	QString hex = QCryptographicHash::hash(s.toStdString().c_str(),QCryptographicHash::Md5).toHex().toUpper().mid(0, 6);
-	if(sameRGB)
-		hex = hex.mid(0, 2) + hex.mid(0, 2) + hex.mid(0, 2);
-	hex = "0x" + hex;
-	bool ok;
-	QRgb rgb = hex.toUInt(&ok, 16);
-	QColor color(rgb);
-	return color;
-}
-
 QColor CellColorizer::getColor(int column, const QString& text)
 {
 	auto qsum = [](const QString& s) -> quint32 
@@ -133,199 +115,22 @@ QColor CellColorizer::getColor(int column, const QString& text)
 	}
 }
 
-void LogItemDelegate::paint(QPainter *painter,
-	const QStyleOptionViewItem &option,
-	const QModelIndex &index) const
-{
-	QVariant text = index.model()->data(index, Qt::DisplayRole);
-	if (option.showDecorationSelected && (option.state & QStyle::State_Selected)) {
-		if (option.state & QStyle::State_Active)
-			painter->fillRect(option.rect, QColor(0xeeeeee));
-		else {
-			QPalette p = option.palette;
-			painter->fillRect(option.rect, p.color(QPalette::Inactive, QPalette::Background));
-		}
-		painter->drawText(option.rect, option.displayAlignment, text.toString().split("\n").at(0));
-		return;
-	}
-	if (true) {
-		//QVariant text = index.model()->data(index, Qt::DisplayRole);
-		if (text.type() == QVariant::DateTime) {
-			text = text.toDateTime().toString("dd.MMM hh:mm:ss.zzz");
-			//text = text.toDateTime().toString();
-		}
-		QStyleOptionViewItem myOption = option;
-		//myOption.displayAlignment = Qt::AlignRight | Qt::AlignVCenter;
-		QBrush orgBrush = painter->brush();
-		QPen savePen = painter->pen();
-		LogView *view = qobject_cast<LogView *>(this->parent());
-		auto qsum = [](const QString& s) -> quint32 {
-			quint32 qsum_ = 0;
-			foreach(auto ch, s.toStdString())
-			{
-				qsum_ += ch;
-			}
-			return qsum_;
-		};
-		if (view) {
-			// colorize the forground depends on chars
-			CellColorizer& colorizer = view->getRowStyle().getCellColorizer(index.column());
-			if (colorizer.colorizeByChars) {
-				QColor color = colorizer.getColor(index.column(), text.toString());
-				QPen pen = painter->pen();
-				pen.setColor(color);
-				painter->setPen(pen);
-			}
-
-			RowColorizer& rColorizer = view->getRowStyle().getRowColorizer();
-			// colrize the background
-			if (rColorizer.boundColumn && rColorizer.colorizeByChars) {
-				QModelIndex colIndex = index.model()->index(index.row(), rColorizer.boundColumn, index);
-				auto colorizeByText = index.model()->data(colIndex).toString().mid(0, rColorizer.colorizeByChars);
-				QColor color = rColorizer.getColor(index.column(), colorizeByText);
-				painter->fillRect(myOption.rect, color);
-			}
-		}
-
-		view->getRowStyle().textPartColorizer.drawText(painter, myOption, index.column(), text.toString().split("\n").at(0));
-		//painter->drawText(myOption.rect, text);
-
-		QRect r;
-		//QString textLeft = text.toString();
-		//myOption.palette.setColor(QPalette::HighlightedText, Qt::blue);
-		if (false && index.row() == view->currentIndex().row()) {
-			QColor bgColor = QColor(Qt::lightGray);
-			painter->fillRect(myOption.rect, bgColor);
-		}
-		painter->setPen(savePen);
-	} else{
-		QPen pen(Qt::green, 30, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-		painter->setPen(pen);
-		QStyleOptionViewItem newOption(option);
-		//drawBackground(painter, option, index);
-
-		QStyledItemDelegate::paint(painter, newOption, index);
-	}
-}
-
-QString LogItemDelegate::displayText(const QVariant &value, const QLocale &) const
-{
-	if(value.type() == QVariant::DateTime) {
-		return value.toDateTime().toString("dd.MMM hh:mm:ss.zzz");
-	}
-	return value.toString();
-}
-
-void LogItemDelegate::drawBackground(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
-{
-	if (index.column() == 1) {//assume that id keeps in a second column
-		const int id = index.data().toInt();
-		painter->fillRect(option.rect, Qt::red);
-	}
-}
-
-void TextPartColorizer::addText(const QString &textPart, QColor color, int column)
-{
-	column = -1;
-	TColoredTextPart ctp;
-	ctp.color = color;
-	ctp.textPart = textPart;
-	_coloredTextParts[textPart] = ctp;
-}
-
-
-void TextPartColorizer::removeText(const QString &textPart)
-{
-	_coloredTextParts.remove(textPart);
-}
-
-void TextPartColorizer::setFindText(const QString &textPart, QColor color, int column)
-{
-	_findCTP.color = color;
-	_findCTP.textPart = textPart;
-}
-
-void TextPartColorizer::unsetFindText(const QString &textPart)
-{
-	_findCTP.color = QColor(0, 0, 0);
-	_findCTP.textPart = "";
-}
-
-void TextPartColorizer::drawText(QPainter *painter, const QStyleOptionViewItem &option, int column, const QString &text)
-{
-	column = -1;
-	if (_findCTP.textPart.length()) {
-		_coloredTextParts["__find_text_part"] = _findCTP;
-	}
-	foreach(TColoredTextPart ctp, _coloredTextParts) {
-		QString textLeft = text;
-		int pos = textLeft.indexOf(ctp.textPart);
-		QRect rFill = option.rect;
-		while(pos >= 0) {
-			QString textPart = textLeft.mid(0, pos);
-			textLeft = textLeft.mid(pos);
-			QRect rLeft = painter->boundingRect(option.rect, option.decorationAlignment, textPart);
-			QRect rPart = painter->boundingRect(option.rect, option.decorationAlignment, ctp.textPart);
-			rFill.setTop(rPart.top());
-			rFill.setHeight(rPart.height());
-			rFill.setLeft(rFill.left() + rLeft.width());
-			rFill.setWidth(rPart.width());
-
-			painter->fillRect(rFill, ctp.color);
-			if(ctp.textPart.length() == 0)
-				break;
-			textLeft = textLeft.mid(ctp.textPart.length());
-			pos = textLeft.indexOf(ctp.textPart);
-		}
-	}
-	if (_findCTP.textPart.length())
-		_coloredTextParts.remove("__find_text_part");
-	painter->drawText(option.rect, option.displayAlignment, text);
-	return;
-}
-
-TColoredTextPart *TextPartColorizer::getByText(const QString &text)
-{
-	if(_coloredTextParts.find(text) != _coloredTextParts.end())
-		return &(*_coloredTextParts.find(text));
-	return NULL;
-}
-
 LogView::LogView(QWidget *parent):
 	QTableView(parent)
 {
-	//_QueryOptions = NULL;
 	_findWidget = NULL;
 
 	setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(doubleClicked(QModelIndex)));
 
 	connect(this, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
-	//QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::MoveToPreviousLine), this);
 	connect(this->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(sliderMoved(int)));
 	this->setAutoScroll(false);
-	//verticalScrollBar()->installEventFilter(this);
-	/*
-	QHeaderView * header = horizontalHeader();
-	for(int col = 0; col < header->count(); col++)
-		header->setSectionResizeMode(col, QHeaderView::Stretch);
-*/
-	
 	setFollowMode(false);
 	setSelectionBehavior(SelectRows);
-#ifdef USE_FROZENCOLUMNS
-	initFrozenTable();
-#endif
 	setItemDelegate(new LogItemDelegate(this));
 	_lastVerticalScrollPos = verticalScrollBar()->value();
-	/*setStyleSheet("\
-		QTableView::item:hover{\
-			background-color: rgba(200, 200, 220, 255);\
-		};\
-		QTableView::item:selected{ \
-			background - color: rgba(200, 200, 220, 255); \
-		}");*/
-	//setStyleSheet("LogView::item:selected{background-color: palette(highlight); color: palette(highlightedText);};");
+	horizontalHeader()->setSectionsMovable(true);
 }
 
 LogView::~LogView()
@@ -339,7 +144,7 @@ LogView::~LogView()
 void LogView::doubleClicked(const QModelIndex& index)
 {
 	  LogModel *logModel = qobject_cast<LogModel *>(model());
-	  QSqlRecord r = logModel->getColumnsInformation();
+	  QSqlRecord r = logModel->columnsInformation();
 
 	  QString colName = r.fieldName(index.column());
 	  Conditions qc = logModel->getQueryConditions();
@@ -571,7 +376,7 @@ void LogView::showFindWidget(bool show)
 
 void LogView::sliderMoved(int action)
 {
-	qDebug() << verticalScrollBar()->value() << "-" << verticalScrollBar()->maximum() << verticalScrollBar()->isMaximized();
+	//qDebug() << verticalScrollBar()->value() << "-" << verticalScrollBar()->maximum() << verticalScrollBar()->isMaximized();
 	setFollowMode(verticalScrollBar()->value() == verticalScrollBar()->maximum());
 }
 
@@ -678,74 +483,9 @@ void LogView::contextMenu(const QPoint& point)
 	connect(rowLayoutWidget, &RowLayoutWidget::rowStyleChanged, this, [&](const RowStyle& rowStyle) {
 		setAlternatingRowColors(rowStyle.alternateRowColors);
 		setFont(rowStyle.font);
-
-	});
-
-#if 0
-	//rowLayoutWidget->setRowStyle
-	SMapInt_IntInt smColorize;
-
-	SMapInt_IntInt smColorizeRow;
-	SMapInt_IntInt smLigthnessRow;
-	if(logModel) {
-		//rowLayoutWidget->setAvailableCellColors(getAvailableCellColors(index.column()));
-		//rowLayoutWidget->setAvailableRowColors(getAvailableRowColors());
-		rowLayoutWidget->getColorizeColumnSpin()->setValue(getColorizeColumn(index.column()));
-		rowLayoutWidget->getLightnessSpin()->setValue(getColorizeRow().ligthness);
-
-
-		connect(rowLayoutWidget->getColorizeColumnSpin(), (void (QSpinBox::*)(int))&QSpinBox::valueChanged, [&](int colorizeByChars) {
-			this->setColorizeColumn(colorizeByChars, index.column());
+		setFontSize(rowStyle.fontSize);
 		});
-		connect(rowLayoutWidget->getColorizeRowSpin(), (void (QSpinBox::*)(int))&QSpinBox::valueChanged, [&](int colorizeByChars) {
-			this->setColorizeRow(colorizeByChars, index.column());
-		});
-		/*smColorize.prm1 = index.column();
-		smColorize.docon(rowLayoutWidget->getColorizeColumnSpin(),
-			SIGNAL(valueChanged(int)), this, SLOT(setColorizeColumn(int,int)));*/
-		rowLayoutWidget->getColorizeRowSpin();
 
-		smColorizeRow.prm1 = index.column();
-		smColorizeRow.docon(rowLayoutWidget->getColorizeRowSpin(),
-			SIGNAL(valueChanged(int)), this, SLOT(setColorizeRow(int,int)));
-
-		//rowLayoutWidget->setAvailableCellColors(_availableCellColors);
-		//rowLayoutWidget->setAvailableRowColors(_availableRowColors);
-		//connect(rowLayoutWidget, &RowLayoutWidget::CellColorChanged)
-		
-		smLigthnessRow.prm1 = index.column();
-		smLigthnessRow.docon(rowLayoutWidget->getLightnessSpin(),
-			SIGNAL(valueChanged(int)), this, SLOT(setLigthnessRow(int,int)));
-		QRect r;
-		QString text = model()->data(index).toString();
-		/*
-		foreach(QChar ch, text) {
-			r.setWidth(r.width() + this->paintEngine()->painter()->boundingRect(option.rect, option.displayAlignment, ch));
-			if(point.x() < r.width())
-				break;
-
-		}*/
-		QTextCursor tc;
-
-		tc.select(QTextCursor::WordUnderCursor);
-
-		QString word = tc.selectedText();
-
-		foreach(TColoredTextPart part, _textPartColorizer.getList()) {
-			rowLayoutWidget->getTextPartColorCombo()->addItem(part.textPart);
-			rowLayoutWidget->getTextPartColorSlider()->setValue(part.color.value());
-		}
-
-
-	}
-	rowLayoutWidget->getAlternateRowColorCheck()->setChecked(alternatingRowColors());
-	connect(rowLayoutWidget->getAlternateRowColorCheck(), SIGNAL(toggled(bool)), this, SLOT(setAlternateRowColors(bool)));
-
-	rowLayoutWidget->getFontCombo()->setFont(font());
-	connect(rowLayoutWidget->getFontCombo(), SIGNAL(currentFontChanged(QFont)), this, SLOT(setFont(QFont)));
-	rowLayoutWidget->getFontSizeSpin()->setValue(font().pointSize());
-	connect(rowLayoutWidget->getFontSizeSpin(), SIGNAL(valueChanged(int)), this, SLOT(setFontSize(int)));
-#endif
 	widgetAction = new QWidgetAction(&menu);
 	widgetAction->setDefaultWidget(rowLayoutWidget);
 	menu.addMenu(tr("Style"))->addAction(widgetAction);
@@ -998,100 +738,5 @@ void LogWindow::showFindWidget(bool show)
 {
 	_logView->showFindWidget(show);
 }
-
-DetailView::DetailView(QWidget *parent):
-	QTextEdit(parent)
-{
-	setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(this, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
-}
-
-void DetailView::writeSettings(const QString &basePath)
-{
-	Settings s(basePath);
-	for(int col = 0; col < _logModel->columnCount(); col++)
-		s.column(col).visibleDetail(_visibleColumns[col]);
-}
-
-void DetailView::readSettings(const QString &basePath)
-{
-	Settings s(basePath);
-	foreach(QString colStr, s.childGroups("column")) {
-		int col = colStr.toInt();
-		_visibleColumns[col] = s.column(col).visibleDetail();
-	}
-}
-
-void DetailView::contextMenu(const QPoint& point)
-{
-	//ContextMenuDetailView menu(this);
-	QMenu menu(this);
-
-	QMenu *visbleColumnsMenu = menu.addMenu(tr("Visible columns"));
-	QSqlRecord cols = _logModel->getColumnsInformation();
-	for(int col = 0; col < _logModel->columnCount(); col++) {
-		QCheckBox *checkBox = new QCheckBox(&menu);
-		checkBox->setText(cols.fieldName(col));
-		checkBox->setChecked(_visibleColumns[col]);
-		QWidgetAction *checkableAction = new QWidgetAction(&menu);
-		checkableAction->setDefaultWidget(checkBox);
-		visbleColumnsMenu->addAction(checkableAction);
-		SMapBool_BoolInt *sm = new SMapBool_BoolInt(&menu);
-		sm->prm1 = col;
-		sm->docon(checkBox, SIGNAL(toggled(bool)), this, SLOT(showColumn(bool,int)));
-	}
-
-	FontStyleWidget *fontWidget = new FontStyleWidget(&menu);
-	fontWidget->getFontCombo()->setFont(font());
-	connect(fontWidget->getFontCombo(), SIGNAL(currentFontChanged(QFont)), this, SLOT(setFont(QFont)));
-	fontWidget->getFontSizeSpin()->setValue(font().pointSize());
-	connect(fontWidget->getFontSizeSpin(), SIGNAL(valueChanged(int)), this, SLOT(setFontSize(int)));
-
-
-	QWidgetAction *actionFont = new QWidgetAction(&menu);
-	actionFont->setDefaultWidget(fontWidget);
-	menu.addMenu(tr("Font"))->addAction(actionFont);
-/*
-	QFontComboBox *fontCombo = new QFontComboBox(&menu);
-	actionFont->setDefaultWidget(fontCombo);
-	menu.addMenu(tr("Font"))->addAction(actionFont);
-	connect(fontCombo, SIGNAL(currentFontChanged(QFont)), this, SLOT(setFont(QFont)));
-*/
-	menu.exec(mapToGlobal(point));
-
-	qDebug() << "done contextmenu";
-}
-
-void DetailView::showColumn(bool visible, int col)
-{
-	_visibleColumns[col] = visible;
-}
-
-void DetailView::setModel(LogModel *model)
-{
-	_logModel = model;
-}
-
-void DetailView::currentRowChanged(QModelIndex current, QModelIndex last)
-{
-	QString out;
-	qDebug()<<"currentRowChanged "<<current<<","<<last;
-	/*
-	 * @todo make detail view of multiple selectsions
-	QItemSelectionModel *selected = this->selectionModel();
-	*/
-	for(int col = 0; col < _logModel->columnCount(); col++) {
-		if(_visibleColumns[col]) {
-			out += _logModel->data(current.row(), col, Qt::DisplayRole).toString() + "<br>";
-			
-		}		
-	}
-	out = utils::ReplaceAll(out.toStdString(), "\n", "<br>").c_str();
-	out = utils::ReplaceAll(out.toStdString(), " ", "&nbsp;").c_str();
-	//QVariant v = _logModel->data(current, Qt::DisplayRole);
-	this->setText(out);
-	//this->setHtml(out);
-}
-
 
 #endif
