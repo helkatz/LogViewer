@@ -59,7 +59,7 @@ QVariant PropBaseClass::get(const QString& name, const QVariant& def) const
 
 void PropBaseClass::remove(const QString& name)
 {
-	if (_parent) _parent->remove(name.length() == 0 ? path() : path() + "/" + name);
+	root()->remove(name.length() == 0 ? path() : path() + "/" + name);
 }
 
 QString PropBaseClass::name() const 
@@ -174,7 +174,7 @@ Settings::Settings(QString basePath):
 	QSettings(_organisation, _application)
 {
 	setBasePath(basePath);
-	qDebug() << fileName();
+	//qDebug() << fileName();
 	ColorList cl;
 	QVariant v;
 	v.setValue(cl);

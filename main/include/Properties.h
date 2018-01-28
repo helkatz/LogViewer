@@ -21,7 +21,7 @@ protected:
     template<typename T>
     const T get(const QString& name, const T& def) const
     {
-        return _hive.contains(name) ? get(name) : def;
+        return _hive.contains(name) ? get<T>(name) : def;
     }
 public:
     Properties()
@@ -42,6 +42,6 @@ public:
 
 #define PROPERTY(TYPE, NAME, ...) \
     void NAME(const TYPE& value){ set<TYPE>(#NAME, value); } \
-    TYPE NAME() const { return get<TYPE>(#NAME); }
+    TYPE NAME() const { return get<TYPE>(#NAME, __VA_ARGS__); }
 
 

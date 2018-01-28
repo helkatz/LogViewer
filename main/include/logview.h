@@ -4,14 +4,16 @@
 #include "queryconditions.h"
 #include "forms/findwidget.h"
 #include "logsqlmodel.h"
-#include <qwindow.h>
+#include <qwindow>
 #include <QString>
 #include <QDateTime>
 #include <QWidget>
 #include <QTableView>
 #include <QSplitter>
-#include <qstyleditemdelegate.h>
+#include <qstyleditemdelegate>
 #include <QTextEdit>
+#include <qplaintextedit.h>
+#include <qtimer.h>
 
 
 // #define USE_FROZENCOLUMNS
@@ -25,10 +27,10 @@ public:
     void paint(QPainter *painter,
         const QStyleOptionViewItem &option,
         const QModelIndex &index) const;
-    virtual QString displayText(const QVariant & value, const QLocale & locale ) const;
+    virtual QString xdisplayText(const QVariant & value, const QLocale & locale ) const;
 protected:
-    virtual void drawBackground(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
-    QColor getColorFromString(QString s, bool sameRGB = false) const;
+    virtual void xdrawBackground(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+    QColor xgetColorFromString(QString s, bool sameRGB = false) const;
 private slots:
 
 private:
@@ -165,7 +167,8 @@ public:
 	ColorList getAvailableRowColors() const { return _availableRowColors; }*/
 	RowStyle& getRowStyle() { return _rowStyle; }
 signals:
-
+signals:
+	void scrolltable(QModelIndex index);
 protected slots:
     void currentChanged(const QModelIndex &current, const QModelIndex &previous);
     void doubleClicked(const QModelIndex &);
@@ -173,6 +176,10 @@ protected slots:
 protected slots:
     virtual void dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles = QVector<int>());
     void showColumn(bool, int);
+	void doScroll(QModelIndex index)
+	{
+		QTableView::scrollTo(index);
+	};
 #if 0
     void setColorizeColumn(int, int);
     void setColorizeRow(int colorize, int row);
@@ -203,8 +210,14 @@ public slots:
 class DetailView: public QTextEdit
 {
     Q_OBJECT
-    LogModel *_logModel;
+	QTextDocument _doc;
+	QTimer _showTimer;
+	LogModel *_logModel;
     QMap<int, bool> _visibleColumns;
+	QStringList _lines;
+	quint32 _lastVerticalScrollPos = -1;
+	QModelIndex _currentIndex;
+	QMetaObject::Connection _conn;
 public:
     DetailView(QWidget *parent);
     void setModel(LogModel *model);
@@ -222,6 +235,7 @@ protected slots:
 
 class LogWindow: public QSplitter
 {
+	friend class LogWindowTest;
     Q_OBJECT
     LogModel *_logModel;
     LogView *_logView;
@@ -246,6 +260,9 @@ public:
 public slots:
     void setFollowMode(bool enabled = true);
     void showFindWidget(bool show = true);
+
+public:
+	
 };
 
 #endif // LOGVIEW_H

@@ -1,4 +1,4 @@
-include("c:/data/repos/binaries/cmake/helper.cmake")
+include("c:/data/binaries/cmake/helper.cmake")
 cmake_minimum_required(VERSION 2.8)
 
 project(LogViewer)# VERSION 1.2.3.4 LANGUAGES C CXX)
@@ -29,10 +29,16 @@ set(CMAKE_AUTORCC ON)
 #file(GLOB_RECURSE sources forms/*)
 #file(GLOB_RECURSE sources languages/*)
 file(GLOB_RECURSE sources main/* languages/* forms/* utils/*)
+
+#set(CMAKE_PREFIX_PATH C:/qt/5.9/5.9.1/msvc2015)
+#set(CMAKE_PREFIX_PATH C:/qt5/5.9.3/msvc2015)
+set(CMAKE_PREFIX_PATH C:/qt5/5.10.0/msvc2015)
+#set(CMAKE_PREFIX_PATH C:/qt/5.7/msvc2015)
 ##file(GLOB_RECURSE ui_files *.ui)
 #find_package(Qt5)
 find_package(Qt5Widgets)
 find_package(Qt5Sql)
+find_package(Qt5Network)
 #find_package(logger)
 #find_package(logger 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/logger/*/")
 
@@ -46,7 +52,7 @@ SOURCE_GROUP_BY_FOLDER(sources)
 
 target_include_directories(LogViewer PUBLIC main/include)
 target_include_directories(LogViewer PUBLIC .)
-target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql logger re2 boost)
+target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql Qt5::Network logger re2 boost)
 IF(WIN32) # Check if we are on Windows
   if(MSVC) # Check if we are using the Visual Studio compiler
     set_target_properties(LogViewer PROPERTIES 

@@ -24,6 +24,7 @@ public:
 
 class MainWindow : public QMainWindow
 {
+	friend class LogWindowTest;
     Q_OBJECT
     explicit MainWindow(QWidget *parent = 0);
     static MainWindow *_instance;

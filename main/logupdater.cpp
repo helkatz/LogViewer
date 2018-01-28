@@ -15,7 +15,7 @@ QMap<QString, ObserverBase::Ptr> ObserverBase::_observers;
 void ObserverFile::processChanges()
 {
 	// when watched by system then do nothing
-	if (watched = false)
+	if (watched)
 		return;
 	if (_lastSize == _file.size())
 		return;
@@ -68,16 +68,17 @@ LogUpdater& LogUpdater::instance()
 
 void LogUpdater::addData()
 {
+	const int msgcount = 5;
+	const char *messages[msgcount] = {
+		"this is the first message",
+		"a second short",
+		"my name is helmut katz",
+		"i like sailing in corfu",
+		"and now a very very very long message to see whats hanppend when its exeeds the bounding area"
+	};
 #if 0
 	log_debug() << "addData";
-    const int msgcount = 5;
-    const char *messages[msgcount] = {
-        "this is the first message",
-        "a second short",
-        "my name is helmut katz",
-        "i like sailing in corfu",
-        "and now a very very very long message to see whats hanppend when its exeeds the bounding area"
-    };
+
     QString insert;
     for(int i = 0; i <= rand()%1000; i++)
         insert += QString(",(null, now(), 0, '%1')").arg(messages[rand()%msgcount]);
@@ -90,10 +91,11 @@ void LogUpdater::addData()
 		log_debug() << "error " << dbInsert.lastError().text();
     }
 #endif
-	auto file = _fsopen("C:/Data/Projekte/Software/QT/LogViewer6/src/Test/logs/app.log", "a+", _SH_DENYNO);
+	auto file = _fsopen("C:/logs/appandingtest.log", "a+", _SH_DENYNO);
 	if (file) {
 		static int count = 0;
-		fputs(QString("2015-09-23 17:33:20 [::1][-][-][trace][ajax\stdlog] js:ajax\stdlog:8[0.00000] testmessage %1\n").arg(++count).toStdString().c_str(), file);
+		fputs(QString("2015-09-23 17:33:20.000|Logger|Level|testmessage %1\n")
+			.arg(messages[rand() % msgcount]).toStdString().c_str(), file);
 		fclose(file);
 	}
 	
@@ -110,7 +112,7 @@ void LogUpdater::run()
     QTimer checkChangesTimer;
     connect(&addDataTimer, SIGNAL(timeout()), this, SLOT(addData()));
     connect(&checkChangesTimer, SIGNAL(timeout()), this, SLOT(checkChanges()));
-    addDataTimer.start(5000);
+    //addDataTimer.start(5000);
     checkChangesTimer.start(1000);
     exec();
 

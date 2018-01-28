@@ -42,6 +42,7 @@ public:
 	virtual void remove(const QString& name = "");
 
 	virtual QString name() const;
+
 };
 
 
@@ -213,6 +214,7 @@ public:
 		PROPCLASS(queryConditions, queryConditions)
 		PROPCLASS(rowStyle, rowStyle)
 		PROP(ColorList, availableRowColors)
+		PROP(QByteArray, header)
 	XPROPCLASS_END(view)
 
 	XPROPCLASS_BEGIN(logView, window)
@@ -251,6 +253,7 @@ public:
 		PROPCLASS(view, view)
 		PROPCLASS(queryConditions, queryConditions)
 		PROP(int, logLevel)
+		PROP(QString, logFile)
 		PROP(ColorList, availableColors)
 	PROPCLASS_END(general)
 
@@ -270,5 +273,8 @@ signals:
 public slots:
 
 };
+
+bool readXmlFile(QIODevice &device, QSettings::SettingsMap &map);
+bool writeXmlFile(QIODevice &device, const QSettings::SettingsMap &map);
 
 #endif // SETTINGS_H
