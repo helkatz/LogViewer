@@ -4,61 +4,75 @@
 #include <QAbstractTableModel>
 #include <QSqlTableModel>
 #include <QSqlRecord>
-#include "LogModel.h"
 #include <qdatetime.h>
-typedef std::map<int, QSqlRecord> DataCache;
+#include <unordered_map>
+typedef std::unordered_map<uint32_t, QSqlRecord> DataCache;
 
 class Conditions: public Properties
 {
 
 public:
+	PROPERTY(QString, connection)
     PROPERTY(QString, modelClass)
     PROPERTY(QString, queryString)
-    PROPERTY(QDateTime, fromTime)
-    PROPERTY(QDateTime, toTime)
+    PROPERTY(QDateTime, fromTime, QDateTime::fromTime_t(0))
+    PROPERTY(QDateTime, toTime, QDateTime::fromTime_t(std::numeric_limits<time_t>::max()))
     PROPERTY(int, limit)
 protected:
-
+	
 public:
     Conditions();
     virtual void writeSettings(const QString &basePath);
     virtual void readSettings(const QString &basePath);
 };
-#if 0
+
+class LogView;
+
 class LogModel: public QSqlQueryModel
 {
     Q_OBJECT
 protected:
-    QObjectList _views;
+	struct CurrentRow
+	{
+		QSqlRecord record;
+		quint64 row;
+		CurrentRow() : row(-1) {}
+		operator bool() { return row != -1; }
+		void set(uint64_t row, const QSqlRecord& record)
+		{
+			this->row = row;
+			this->record = record;
+		}
+		void reset()
+		{
+			row = -1;
+		}
+	};
+	mutable CurrentRow _currentRow;
+
+	QList<LogView *> _views;
     mutable DataCache _dataCache;
     int _rows;
     QSqlRecord _columnsInformation;
     Conditions _queryConditions;
+
+
     LogModel(QObject *parent);
-    static LogModel *createClass(const QString& className);
 
-    virtual bool loadData(const QModelIndex &index) const = 0;
-public:
-    void addView(QObject *view);
-
-    void removeView(QObject *view);
+    //static LogModel *createClass(const QString& className);
+	virtual CurrentRow& loadData(const QModelIndex &index) const = 0;
 
 public:
+    void addView(LogView *view);
 
-    static void serialize();
-    static LogModel *unserialize();
-    static LogModel *create(Conditions &queryConditions);
-    //static LogModel *create(const QString& settingsPath);
+    void removeView(LogView *view);
 
-    virtual Conditions getQueryConditions() const
-        { return _queryConditions; }
+public:
+	virtual QVariant data(int row, int col, int role) const;
 
-    virtual void setQueryConditions(const Conditions& qc)
-        { _queryConditions = qc; }
+	virtual QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
 
-    QVariant data(int row, int col, int role = Qt::DisplayRole) const;
-
-    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+	virtual QString getTitle() const = 0;
 
     virtual void writeSettings(const QString& basePath) = 0;
 
@@ -66,7 +80,8 @@ public:
 
     virtual bool query(const Conditions& qc) = 0;
 
-    virtual QModelIndex find(const QModelIndex& fromIndex, QString where, bool down) const = 0;
+	virtual QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns, 
+		const QString& search, bool regex, bool down) const = 0;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 
@@ -74,16 +89,28 @@ public:
 
     QStringList columns() const;
 
-    QSqlRecord getColumnsInformation() const {
-        return _columnsInformation;
-    }
+	QSqlRecord columnsInformation() const;
 
-    virtual QString getTitle() = 0;
+	virtual Conditions getQueryConditions() const;
+
+	virtual void setQueryConditions(const Conditions& qc);
+
+
+	virtual quint64 getFrontRow() const;
+
+	virtual quint64 getBackRow() const;
+
+	virtual int fetchMoreFrom(quint32 row, quint32 items, bool back);
+
+	virtual int fetchToEnd();
+
+	virtual int fetchToBegin();
+
+	virtual int fetchMoreFromBegin(quint32 items);
+
+	virtual int fetchMoreFromEnd(quint32 items);
+
+public slots:
+	virtual bool queryWithCondition(QString sqlFilter, int limit) = 0;
 };
-#endif
-/*
-inline QVariant LogModel::data(int row, int col, int role) const
-{
-    QModelIndex index = createIndex(row, col);
-    return QAbstractTableModel::data(index, role);
-}*/
+

@@ -14,30 +14,19 @@
 #include <QStringBuilder>
 
 
-LogModel::LogModel(QObject *parent):
-    QSqlQueryModel(parent),
+LogDatabaseModel::LogDatabaseModel(QObject *parent):
+    LogModel(parent),
     _fromPos(0),
-    _rows(0),
     _maxId(0)
 {
 }
 
-LogModel::~LogModel()
+LogDatabaseModel::~LogDatabaseModel()
 {
-    qDebug()<<"~LogModel()";
+    qDebug()<<"~LogDatabaseModel()";
 }
 
-void LogModel::serialize()
-{
-
-}
-
-LogModel *LogModel::unserialize()
-{
-    return NULL;
-}
-
-void LogModel::reportError(const QString& message)
+void LogDatabaseModel::reportError(const QString& message)
 {
     QMessageBox::warning(NULL,
         tr("SQLError"),
@@ -45,62 +34,7 @@ void LogModel::reportError(const QString& message)
 
 }
 
-QVariant LogModel::data(int row, int col, int role) const
-{
-    QModelIndex index = createIndex(row, col);
-    return data(index, role);
-}
-
-QVariant LogModel::data(const QModelIndex &index, int role) const
-{
-    if (role != Qt::DisplayRole)
-        return QVariant();
-    DataCache::const_iterator it = _dataCache.find(index.row());
-    if (it == _dataCache.end()) {
-        loadData(index);
-        it = _dataCache.find(index.row());
-    }
-    if (it != _dataCache.end()) {
-        const QSqlRecord& rowData = it->second;
-        return rowData.value(index.column());
-    }
-    return "undef index";
-}
-
-int LogModel::rowCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent)
-    return _rows;
-}
-
-int LogModel::columnCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent)
-    return _columnsInformation.count();
-}
-
-QStringList LogModel::columns() const
-{
-    QStringList list;
-    for (int i = 0; i < _columnsInformation.count(); i++)
-        list.push_back(_columnsInformation.fieldName(i));
-    return list;
-}
-
-void LogModel::removeView(LogView *view)
-{
-    _views.removeOne(view);
-    if (_views.empty()) {
-        ObserverBase::removeObserver(this);
-    }
-}
-
-void LogModel::addView(LogView *view)
-{
-    _views.append(view);
-}
-
-void LogModel::observedObjectChanged(const QString &id, int maxId)
+void LogDatabaseModel::observedObjectChanged(const QString &id, int maxId)
 {
     if(id == ObserverTable::createId(qc().connectionName(), qc().tableName())) {
         updateQuery(maxId);
@@ -110,89 +44,61 @@ void LogModel::observedObjectChanged(const QString &id, int maxId)
 
 }
 
-bool LogModel::loadData(const QModelIndex &index) const
+LogModel::CurrentRow& LogDatabaseModel::loadData(const QModelIndex &index) const
 {
     int fromPos = index.row() - 100 > 0 ? index.row() - 100 : 0;
     int toPos = index.row() + 100;
     QString sql = QString(_query).arg(fromPos).arg(toPos);
-    qDebug()<<"loadData for index "<<index.row()<<" sql "<<sql;
     _sqlQuery->exec(sql);
+	_currentRow.reset();
     if(_sqlQuery->first()) {
         QSqlRecord& r = _sqlQuery->record();
         int fromId = r.value(0).toInt();
         QString s = QString(",%1").arg(fromId);
         int toId = fromId;
-        do
-        {
+        do {
             QSqlRecord& r = _sqlQuery->record();
-			qDebug() << r;
-            _dataCache[r.value(0).toInt() - 1] = _sqlQuery->record();
-            //_dataCache[currentPos++] = _sqlQuery->record();
+			auto curRow = r.value(0).toInt() - 1;
+			if (curRow == index.row()) {
+				_currentRow.set(curRow, r);
+			}
+            _dataCache[curRow] = r;
             toId = r.value(0).toInt();
             s += QString(",%1").arg(toId);
-
         } while(_sqlQuery->next());
-        //qDebug()<<"ids"<<s;
-        //qDebug()<<"fromId="<<fromId<<"toId"<<toId;
     }
     _sqlQuery->finish();
-    return true;
+	return _currentRow;
 }
 
-void LogModel::createFilterTable(const QString &name, const QString &sql)
-{
-    Q_UNUSED(name)
-    Q_UNUSED(sql)
-}
 /*
-QVariant LogModel::data(int row, int col, int role) const
+QVariant LogDatabaseModel::data(int row, int col, int role) const
 {
     QModelIndex index = createIndex(row, col);
     return data(index, role);
 }
 */
-#if 0
-QVariant LogModel::data(const QModelIndex &index, int role) const
-{
-    if(role != Qt::DisplayRole)
-        return QVariant();
-    DataCache::const_iterator it = _dataCache.find(index.row());
-    if(it == _dataCache.end()) {
-        loadData(index);
-        it = _dataCache.find(index.row());
-    }
-    if(it != _dataCache.end()) {
-        const QSqlRecord& rowData = it->second;
-        return rowData.value(index.column());
-    }
-    return "undef index";
-}
-#endif
-void queryRowsCount()
-{
 
-}
-
-void LogModel::writeSettings(const QString &basePath)
+void LogDatabaseModel::writeSettings(const QString &basePath)
 {
     qc().writeSettings(basePath);
 }
 
-void LogModel::readSettings(const QString &basePath)
+void LogDatabaseModel::readSettings(const QString &basePath)
 {
     qc().readSettings(basePath);
 }
 
-bool LogModel::queryWithCondition(QString sqlFilter, int limit)
+bool LogDatabaseModel::queryWithCondition(QString sqlFilter, int limit)
 {
     qc().queryString(sqlFilter);
     qc().limit(limit);
     return query(qc());
 }
 
-void LogModel::updateQuery(int maxId)
+void LogDatabaseModel::updateQuery(int maxId)
 {
-    qDebug()<<"updateQuery";
+    //qDebug()<<"updateQuery";
     if(_updateQuery.length()) {
         int limit = qc().limit();
         int toPos = maxId;
@@ -200,21 +106,21 @@ void LogModel::updateQuery(int maxId)
         int inserted = 0;
         int loops = 0;
         fromPos = toPos < limit ? 0 : toPos - limit;
-        qDebug()<<"  limit="<<limit<<"fromP="<<fromPos<<"toP="<<toPos;
+        //qDebug()<<"  limit="<<limit<<"fromP="<<fromPos<<"toP="<<toPos;
 
         while(toPos > fromPos) {
-            qDebug()<<"  fetch fromP="<<fromPos<<"toP="<<toPos;
+            //qDebug()<<"  fetch fromP="<<fromPos<<"toP="<<toPos;
             fromPos = fromPos < _fromPos ? _fromPos : fromPos;
             QString sql = QString(_updateQuery).arg(fromPos).arg(toPos);
-            qDebug()<<"  "<<sql;
+            //qDebug()<<"  "<<sql;
             if(_sqlQuery->exec(sql) == false)
-                qDebug() << "  "<<_sqlQuery->lastError().text();
+                //qDebug() << "  "<<_sqlQuery->lastError().text();
             inserted += _sqlQuery->numRowsAffected();
             qDebug()<<"  inserted="<<inserted;
             toPos -= toPos > limit ? limit : toPos;
             fromPos = toPos < limit ? 0 : toPos - limit;
             loops++;
-            qDebug()<<"  next fromP="<<fromPos<<"toP="<<toPos;
+            //qDebug()<<"  next fromP="<<fromPos<<"toP="<<toPos;
         }
 
         _fromPos = maxId + 1;
@@ -223,12 +129,12 @@ void LogModel::updateQuery(int maxId)
     if(_sqlQuery->first()) {
         _rows = _sqlQuery->value("Rows").toInt();
     };
-    qDebug()<<"  rows="<<_rows;
+    //qDebug()<<"  rows="<<_rows;
 
     _sqlQuery->finish();
 }
 
-bool LogModel::query(const Conditions &queryConditions)
+bool LogDatabaseModel::query(const Conditions &queryConditions)
 {
     setQueryConditions(queryConditions);
     _dataCache.clear();
@@ -236,7 +142,7 @@ bool LogModel::query(const Conditions &queryConditions)
     QSqlDatabase db;
     db = utils::database::getDatabase(qc().connectionName());
 	db = utils::database::cloneDatabase(db);
-    qDebug() << "now open db";
+    //qDebug() << "now open db";
     if (!db.open()) {
         return false;
     }
@@ -348,7 +254,7 @@ bool LogModel::query(const Conditions &queryConditions)
 
 }
 
-QString LogModel::getTitle() const
+QString LogDatabaseModel::getTitle() const
 {
     QString title = qc().connectionName() + "/" + qc().tableName();
     if(qc().queryString().length())
@@ -356,7 +262,7 @@ QString LogModel::getTitle() const
     return title;
 }
 
-QModelIndexList LogModel::match(const QModelIndex &start, int role, const QVariant &value, int hits, Qt::MatchFlags flags) const
+QModelIndexList LogDatabaseModel::match(const QModelIndex &start, int role, const QVariant &value, int hits, Qt::MatchFlags flags) const
 {
     Q_UNUSED(hits)
     Q_UNUSED(role)
@@ -374,7 +280,7 @@ QModelIndexList LogModel::match(const QModelIndex &start, int role, const QVaria
     return l;
 }
 
-QModelIndex LogModel::find(const QModelIndex& fromIndex, const QStringList & columns, const QString& search, bool regex, bool down) const
+QModelIndex LogDatabaseModel::find(const QModelIndex& fromIndex, const QStringList & columns, const QString& search, bool regex, bool down) const
 {
 	Q_UNUSED(regex);
 	Q_UNUSED(columns);

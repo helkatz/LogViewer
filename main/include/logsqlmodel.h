@@ -52,19 +52,14 @@ public:
     PROPERTY(QString, connectionName)
 };
 
-class LogModel : public QSqlQueryModel
+class LogDatabaseModel : public LogModel
 {
     Q_OBJECT
 protected:
-	QList<LogView *> _views;
-	mutable DataCache _dataCache;
-	QSqlRecord _columnsInformation;
-	Conditions _queryConditions;
     QString _lastFind;
     QString _queryFields;
     QString _query;
     QString _queryCount;
-	int _rows;
     int _maxId;
     int _fromPos;
     QString _updateQuery;
@@ -72,102 +67,32 @@ protected:
 
     QSqlField _autoincCol;
 
-	virtual bool loadData(const QModelIndex &index) const;
+	SqlConditions qc() const { return _queryConditions;	}
 
-    void createFilterTable(const QString& name, const QString& sql);
-
-	SqlConditions qc() const
-	{
-		return _queryConditions;
-	}
-
+	CurrentRow& loadData(const QModelIndex &index) const override;
 public:
-	LogModel(QObject *parent);
-	~LogModel();
+	LogDatabaseModel(QObject *parent);
 
-	static void serialize();
-	static LogModel *unserialize();
-
-	void addView(LogView *view);
-
-	void removeView(LogView *view);
-
-	virtual Conditions getQueryConditions() const
-	{
-		return _queryConditions;
-	}
-
-	virtual void setQueryConditions(const Conditions& qc)
-	{
-		_queryConditions = qc;
-	}
+	~LogDatabaseModel();
 
     void reportError(const QString& message);
 
-	QVariant data(int row, int col, int role = Qt::DisplayRole) const;
+	virtual QString getTitle() const override;
 
-	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+	void writeSettings(const QString& basePath) override;
 
-	virtual bool query(const Conditions& QueryOptions);
+	void readSettings(const QString& basePath) override;
 
-	virtual quint64 getFrontRow() const
-	{
-		return 0;
-	}
-
-	virtual quint64 getBackRow() const
-	{
-		return 0;
-	}
-	virtual int fetchMoreFrom(quint32 row, quint32 items, bool back)
-	{
-		Q_UNUSED(row);
-		Q_UNUSED(items);
-		Q_UNUSED(back);
-		return 0;
-	};
-	virtual int fetchToEnd() { return 0; };
-	virtual int fetchToBegin() { return 0; };
-	virtual int fetchMoreFromBegin(quint32 items)
-	{
-		Q_UNUSED(items);
-		return 0;
-	};
-	virtual int fetchMoreFromEnd(quint32 items)
-	{
-		Q_UNUSED(items);
-		return 0;
-	};
-    virtual QString getTitle() const;
+	bool query(const Conditions& QueryOptions) override;
 
     virtual QModelIndexList match(const QModelIndex &start, int role,
                                   const QVariant &value, int hits = 1,
                                   Qt::MatchFlags flags =
                                   Qt::MatchFlags(Qt::MatchStartsWith|Qt::MatchWrap)) const;
 
-    virtual QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns, const QString& search, bool regex, bool down) const;
+    QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns, 
+		const QString& search, bool regex, bool down) const override;
 
-	int rowCount(const QModelIndex &parent = QModelIndex()) const;
-
-	int columnCount(const QModelIndex &parent = QModelIndex()) const;
-
-	QStringList columns() const;
-
-	QSqlRecord getColumnsInformation() const
-	{
-		return _columnsInformation;
-	}
-
-    void queryRowsCount();
-
-	virtual void updateRowCount(quint32 maxRows) 
-	{
-		Q_UNUSED(maxRows)
-	};
-
-    void writeSettings(const QString& basePath);
-
-    void readSettings(const QString& basePath);
 
 signals:
     void newQuery(const QString& connectionName, const QString& table);
