@@ -27,20 +27,17 @@ public:
 
 class LogFileModel : public LogModel
 {
+	friend class LogFileModelTest;
     Q_OBJECT
     QSharedPointer<Parser> _parser;
-    mutable struct CurrentRow
-    {
-        QSqlRecord r;
-        quint64 row;
-        CurrentRow() : row(-1) {}
-    } currentRow;
 
 protected:
     FileConditions qc() const
         { return _queryConditions; }
 
-    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+    //QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
+
+	CurrentRow& loadData(const QModelIndex &index) const;
 
 	virtual quint64 getFrontRow() const;
 

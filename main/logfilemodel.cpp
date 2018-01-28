@@ -17,52 +17,23 @@
 #include <deque>
 #include <iostream>
 
-//#define qDebug() if(0) QMessageLogger(__FILE__, __LINE__, Q_FUNC_INFO).debug()
-
-
 LogFileModel::LogFileModel(QObject *parent):
     LogModel(parent)
 {
-    
 }
 
-int LogFileModel::rowCount(const QModelIndex &parent) const
+LogModel::CurrentRow& LogFileModel::loadData(const QModelIndex & index) const
 {
-	Q_UNUSED(parent);
-    if (_parser)
-        return _parser->getEntriesCount();
-    return 0;
-}
-
-QVariant LogFileModel::data(const QModelIndex &index, int role) const
-{
-	//log_func_entry_leave()
-    if (role != Qt::DisplayRole)
-        return QVariant();
-	//log_trace(2) << "currentRow=" << index.row();
 	quint64 row = index.row();
-    if (currentRow.row != row || index.column() == 0) {
-		/*
-		if (_rows - row < 20 || row < 20) {
-			if (_parser->correctRow(row)) {
-				log_trace(5) << "row corrected old" << index.row() << "new" << row;
-			}
-		}*/
-        LogEntry logEntry(_parser->columnNames().size());
-        if (_parser->readLogEntry(row, logEntry) == false)
-            return false;
-
-        //emit const_cast<LogFileModel *>(this)->layoutChanged();
-        logEntry.getRecord(currentRow.r);
-        log_trace(2) << "currentRow=" << index.row()+1 << "msgindex" << logEntry.entries.at(0).data();
-        currentRow.row = row;
-		if (index.row() != row) {
-			//const_cast<LogFileModel *>(this)->insertRows(0, 1);
-			//emit const_cast<LogFileModel *>(this)->setModifiedPos(row);
-		}
-			
-    }
-    return currentRow.r.value(index.column());
+	LogEntry logEntry(_parser->columnNames().size());
+	_currentRow.reset();
+	if (_parser->readLogEntry(row, logEntry) == false)
+		return _currentRow;
+	QSqlRecord r;
+	logEntry.getRecord(r);
+	_currentRow.set(index.row(), r);
+	//_dataCache[index.row()] = r;
+	return _currentRow;
 }
 
 quint64 LogFileModel::getFrontRow() const
@@ -121,8 +92,7 @@ bool LogFileModel::query(const Conditions &queryConditions)
             setHeaderData(col++, Qt::Horizontal, tr("%1").arg(capitalize(name)));
         }
 
-        _rows = _parser->getEntriesCount();
-
+        _rows = _parser->getEntriesCount();		
         ObserverFile::createObserver(this, qc().fileName());
     }
     _parser->setFilter(queryConditions.queryString());
