@@ -201,6 +201,27 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QToolButton" name="btnAddTextPart">
+           <property name="text">
+            <string>+</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="btnRemoveTextPart">
+           <property name="text">
+            <string>-</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="btnPickTextpartColor">
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>

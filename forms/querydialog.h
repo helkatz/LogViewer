@@ -20,7 +20,7 @@ public:
     QString connection() const;
     QString table() const;
     int limit() const;
-    SqlConditions getQueryOptions() const
+    Conditions getQueryOptions() const
         { return _QueryOptions; }
 private slots:
     void on_cbConnection_currentIndexChanged(const QString &arg1);
@@ -39,7 +39,7 @@ private slots:
 
 private:
     Ui::QueryDialog *ui;
-    SqlConditions _QueryOptions;
+    Conditions _QueryOptions;
 };
 
 #endif // QUERYDIALOG_H

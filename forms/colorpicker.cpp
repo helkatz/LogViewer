@@ -22,7 +22,7 @@ ColorPicker::ColorPicker(QWidget *parent)
 	setAvailableColors(cl);
 	connect(ui->tableAvailableColors, &QTableWidget::doubleClicked, this, [&](const QModelIndex& index) {
 		auto idx = index.row() * maxColumns + index.column();
-		if (idx > _availableColors.size())
+		if (idx >= _availableColors.size())
 			return;
 		QColor color = _availableColors.at(idx);
 		_availableColors.erase(_availableColors.begin() + idx);// std::find_if(_availableColors.begin(), _availableColors.end(), [color](const QColor& _color) { return _color == color;  })
@@ -33,7 +33,7 @@ ColorPicker::ColorPicker(QWidget *parent)
 	});
 	connect(ui->tableUsedColors, &QTableWidget::doubleClicked, this, [&](const QModelIndex& index) {
 		auto idx = index.row() * maxColumns + index.column();
-		if (idx > _usedColors.size())
+		if (idx >= _usedColors.size())
 			return;
 		QColor color = _usedColors.at(idx);
 		_usedColors.erase(_usedColors.begin() + idx);

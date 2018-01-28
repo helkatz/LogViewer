@@ -18,6 +18,7 @@ GenerellWidget::GenerellWidget(QWidget *parent) :
 		ui->logLevel->addItem(item->second.c_str());
 	}
 	ui->logLevel->setCurrentText(logger::Logger::Level(s.general().logLevel()).toString().c_str());
+	ui->logFileEdit->setText(s.general().logFile());
 }
 
 GenerellWidget::~GenerellWidget()
@@ -56,5 +57,6 @@ void GenerellWidget::on_btnSave_clicked()
 	s.general().view().fontSize(ui->fontSize->value());
 	s.general().view().alternatingRowColors(ui->altRowColorsCheckBox->checkState() == Qt::Checked);
 	s.general().logLevel(logger::Logger::Level(ui->logLevel->currentText().toStdString()));
+	s.general().logFile(ui->logFileEdit->text());
 	//s.general().coloredColumns(ui->coloredColumnsSpinBox->value());
 }

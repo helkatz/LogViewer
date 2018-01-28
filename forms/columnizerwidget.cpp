@@ -16,9 +16,8 @@ ColumnizerWidget::ColumnizerWidget(QDialog *parent) :
 	ui(new Ui::ColumnizerWidget)
 {
 	ui->setupUi(this);
-	ui->btnAddName->setEnabled(false);
 	ui->btnDeletePattern->setEnabled(false);
-	
+	ui->cbName->lineEdit()->setPlaceholderText("enter a name and press save");
 	QStringList headers;
 	headers << "Name" << "Pattern" << "Show" << "Fmt" << "From" << "To";
 	ui->tableWidget->setColumnCount(headers.size());
@@ -39,6 +38,7 @@ void ColumnizerWidget::saveSettings()
 	int col = 0;
     if(name.length() > 0) {
 		settings.columnizer(name).subject(ui->editSubject->toPlainText());
+		settings.columnizer(name).columns().remove();
 		for (int row = 0; row < ui->tableWidget->rowCount(); row++)
 		{			
 			auto r = getPatternRow(row);
@@ -59,14 +59,20 @@ void ColumnizerWidget::loadSettings(QString name)
     Settings settings;
 	removePatternRows();
 	ui->cbName->blockSignals(true);
-	if (name.length() == 0) {
+	auto index = ui->cbName->currentIndex();
+	ui->cbName->clear();
+	ui->cbName->addItems(settings.childGroups("columnizer"));
+	if (index != -1)
+		ui->cbName->setCurrentIndex(index);
+
+	/*if (name.length() == 0) {
 		auto index = ui->cbName->currentIndex();
 		ui->cbName->clear();
 		ui->cbName->addItems(settings.childGroups("columnizer"));
 		if (index != -1)
 			ui->cbName->setCurrentIndex(index);
 	}
-	if (name.length() == 0)
+	if (name.length() == 0)*/
 		name = ui->cbName->currentText();
 	ui->cbName->setCurrentIndex(ui->cbName->findText(name));
 	ui->cbName->blockSignals(false);
@@ -282,14 +288,12 @@ void ColumnizerWidget::on_btnCancel_clicked()
 void ColumnizerWidget::on_cbName_currentTextChanged(const QString &arg1)
 {
 	qDebug() << ui->cbName->findText(arg1);
-	ui->btnAddName->setEnabled(ui->cbName->findText(arg1) == -1);
 }
 
 void ColumnizerWidget::on_cbName_currentIndexChanged(int index)
 {
 	QString name = ui->cbName->itemText(index);
 	qDebug() << ui->cbName->findText(name);
-	ui->btnAddName->setEnabled(ui->cbName->findText(name) == -1);
 	if (name.length() > 0)
 		loadSettings(name);
 }
@@ -298,18 +302,11 @@ void ColumnizerWidget::on_btnDelete_clicked()
 {
     Settings settings;
     QString name = ui->cbName->currentText();
+	auto index = ui->cbName->currentIndex();
+	ui->cbName->removeItem(index);
 	settings.columnizer(name).remove();
-    loadSettings();
-}
-
-void ColumnizerWidget::on_btnAddName_clicked()
-{
-	Settings settings;
-	QString name = ui->cbName->currentText();
-	ui->cbName->addItem(name);
-	ui->btnAddName->setEnabled(false);
-	removePatternRows();
-
+	name = ui->cbName->currentText();
+    loadSettings(name);
 }
 
 void ColumnizerWidget::on_btnAddPattern_clicked()

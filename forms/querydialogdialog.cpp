@@ -1,17 +1,55 @@
 #include "querydialog.h"
 #include "ui_querydialog.h"
 #include "settings.h"
+#include "logstashmodel.h"
 #include "Utils/utils.h"
 #include <QtWidgets>
 #include <QtSql/QtSql>
+enum class ConnectionType
+{
+	Database,
+	Logstash
+};
+struct ConnectionInfo {
+	QString name;
+	enum class Type {
+		Database,
+		Logstash
+	};
+	Type type;
+};
+Q_DECLARE_METATYPE(ConnectionInfo);
+
 QueryDialog::QueryDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::QueryDialog)
 {
     Settings settings;
     ui->setupUi(this);
-    ui->cbConnection->addItems(settings.childGroups("connections/database"));
-	ui->cbConnection->addItems(settings.childGroups("connections/logstash"));
+	
+	
+	auto getLastItem = [this]()
+	{
+		QStandardItemModel* model = qobject_cast<QStandardItemModel*>(ui->cbConnection->model());
+		auto lastItemIndex = model->rowCount() - 1;
+		return model->item(lastItemIndex);
+	};
+	ui->cbConnection->blockSignals(true);
+	ui->cbConnection->addItem("Database Connections");
+	getLastItem()->setFlags(getLastItem()->flags() & ~Qt::ItemIsSelectable);
+	foreach(auto conName, settings.childGroups("connections/database")) {
+		settings.connections().database(conName);
+		ui->cbConnection->addItem("  " + conName, 
+			QVariant().fromValue(ConnectionInfo{ conName, ConnectionInfo::Type::Database }));
+	}
+	
+	ui->cbConnection->addItem("Logstash Connections");
+	getLastItem()->setFlags(getLastItem()->flags() & ~Qt::ItemIsSelectable);
+	foreach(auto conName, settings.childGroups("connections/logstash")) {
+		ui->cbConnection->addItem("  " + conName, 
+			QVariant().fromValue(ConnectionInfo{ conName, ConnectionInfo::Type::Logstash }));
+	}
+	ui->cbConnection->blockSignals(false);
     loadFilter();
 }
 
@@ -44,10 +82,16 @@ void QueryDialog::loadFilter()
 
 void QueryDialog::on_cbConnection_currentIndexChanged(const QString &arg1)
 {
-	QSqlDatabase& db = utils::database::getDatabase(arg1);
-    ui->cbTables->clear();
-    if(db.open())
-        ui->cbTables->addItems(db.tables());
+	ConnectionInfo ci = ui->cbConnection->currentData().value<ConnectionInfo>();
+	
+	if (ci.type == ConnectionInfo::Type::Database) {		
+		ui->cbTables->setEnabled(true);
+		QSqlDatabase& db = utils::database::getDatabase(ci.name);
+		ui->cbTables->clear();
+		if (db.open())
+			ui->cbTables->addItems(db.tables());
+	} else
+		ui->cbTables->setEnabled(false);
 }
 
 void QueryDialog::on_btnCancel_clicked()
@@ -57,11 +101,26 @@ void QueryDialog::on_btnCancel_clicked()
 
 void QueryDialog::on_btnOpen_clicked()
 {
-    _QueryOptions.modelClass("LogSqlModel");
-    _QueryOptions.database(ui->cbConnection->currentText());
-    _QueryOptions.connectionName(ui->cbConnection->currentText());
-    _QueryOptions.tableName(ui->cbTables->currentText());
-    _QueryOptions.limit(ui->editLimit->text().toInt());
+	ConnectionInfo ci = ui->cbConnection->currentData().value<ConnectionInfo>();
+	if (ci.type == ConnectionInfo::Type::Database) {
+		SqlConditions conditions;
+		conditions.modelClass("LogSqlModel");
+		conditions.database(ci.name);
+		conditions.connectionName(ci.name);
+		conditions.tableName(ui->cbTables->currentText());
+		conditions.limit(ui->editLimit->text().toInt());
+		conditions.connection(ci.name);
+		_QueryOptions = conditions;
+	}
+	if (ci.type == ConnectionInfo::Type::Logstash) {
+		LogStashConditions conditions;
+		conditions.modelClass("LogStashModel");
+		//conditions.host(ci.name);
+		conditions.limit(ui->editLimit->text().toInt());
+		conditions.connection(ci.name);
+		_QueryOptions = conditions;
+	}
+
     accept();
 }
 

@@ -54,7 +54,6 @@ private slots:
 
     void on_btnDelete_clicked();
 
-	void on_btnAddName_clicked();
 	void on_btnAddPattern_clicked();
 	void on_btnDeletePattern_clicked();
 	void on_patternRow_activate()

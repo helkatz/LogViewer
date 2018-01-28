@@ -49,19 +49,16 @@ void ConnectionsLogstashWidget::on_btnCancel_clicked()
 	window()->close();
 }
 
-void ConnectionsLogstashWidget::on_cbName_currentTextChanged(const QString &)
+void ConnectionsLogstashWidget::on_db_name_currentTextChanged(const QString &)
 {
 }
 
-void ConnectionsLogstashWidget::on_cbName_currentIndexChanged(int)
+void ConnectionsLogstashWidget::on_db_name_currentIndexChanged(int)
 {
-    QString name = ui->cbName->currentText();
-    if(name.length() == 0)
-        return;
-    Settings settings;
-    ui->editHost->setText(settings.connections().logstash(name).host());
-    ui->editUsername->setText(settings.connections().logstash(name).username());
-    ui->editPassword->setText(settings.connections().logstash(name).password());
+}
+
+void ConnectionsLogstashWidget::on_ls_name_currentIndexChanged(int)
+{
 }
 
 void ConnectionsLogstashWidget::on_btnDelete_clicked()

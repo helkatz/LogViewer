@@ -45,13 +45,16 @@ private slots:
     void on_cbTextPartColor_currentIndexChanged(int index);
     void on_sliderTextPartColor_valueChanged(int value);
 
+	void on_btnPickTextpartColor_clicked();
+	void on_btnAddTextPart_clicked();
+	void on_btnRemoveTextPart_clicked();
+
     void on_sliderRed_valueChanged(int value);
 
     void on_sliderGreen_valueChanged(int value);
 
     void on_sliderBlue_valueChanged(int value);
 
-	void xon_btnPickCellColor_clicked();
 	void on_btnPickRowColor_clicked();
 signals:
     void currentFontSizeChanged(int);

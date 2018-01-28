@@ -285,14 +285,14 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
+            <item row="2" column="0">
              <widget class="QLabel" name="followmodeLabel">
               <property name="text">
                <string>Followmode</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="2" column="1">
              <widget class="QCheckBox" name="followmodeCheckBox"/>
             </item>
             <item row="0" column="1">
@@ -314,6 +314,16 @@
                </spacer>
               </item>
              </layout>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="logFileEdit"/>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="logFileLabel">
+              <property name="text">
+               <string>LogFile</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>

@@ -21,9 +21,11 @@ private slots:
 
     void on_btnCancel_clicked();
 
-    void on_cbName_currentTextChanged(const QString &arg1);
+    void on_db_name_currentTextChanged(const QString &arg1);
 
-    void on_cbName_currentIndexChanged(int index);
+    void on_db_name_currentIndexChanged(int index);
+
+	void on_ls_name_currentIndexChanged(int index);
 
     void on_btnDelete_clicked();
 

@@ -18,7 +18,7 @@ RowLayoutWidget::RowLayoutWidget(QWidget *parent, RowStyle& rowStyle, const QMod
 	ui->setupUi(this);
 	addColorDialog(ui->btnPickCellColor);
 	addColorDialog(ui->btnPickRowColor);
-
+	addColorDialog(ui->btnPickTextpartColor);
 	ui->spinColorizeCellByChar->setValue(rowStyle.getCellColorizer(_currentCell).colorizeByChars);
 	connect(ui->spinColorizeCellByChar, (void (QSpinBox::*)(int))&QSpinBox::valueChanged, this, [&](int colorizeByChars) {
 		rowStyle.getCellColorizer(_currentCell).colorizeByChars = colorizeByChars;
@@ -43,6 +43,7 @@ RowLayoutWidget::RowLayoutWidget(QWidget *parent, RowStyle& rowStyle, const QMod
 		ui->cbTextPartColor->addItem(part.textPart);
 		ui->sliderTextPartColor->setValue(part.color.value());
 	}
+	ui->cbTextPartColor->setCurrentIndex(1);
 
 	ui->alternateRowColors->setChecked(rowStyle.alternateRowColors);
 	connect(ui->alternateRowColors, &QCheckBox::toggled, this, [&](bool enabled) {
@@ -67,74 +68,10 @@ RowLayoutWidget::RowLayoutWidget(QWidget *parent, RowStyle& rowStyle, const QMod
 	connect(rowLayoutWidget->getFontSizeSpin(), SIGNAL(valueChanged(int)), this, SLOT(setFontSize(int)));
 	widgetAction = new QWidgetAction(&menu);
 	*/
-	addColorDialog(ui->btnPickCellColor);
-	addColorDialog(ui->btnPickRowColor);
+	//addColorDialog(ui->btnPickCellColor);
+	//addColorDialog(ui->btnPickRowColor);
 }
-#if 0
-RowLayoutWidget::RowLayoutWidget(QWidget *parent, LogView *logView, const QModelIndex& index) :
-    QWidget(parent),
-    ui(new Ui::RowLayoutWidget),
-	logView(logView)
-{
-    //logView = qobject_cast<LogView *>(parent);
-    ui->setupUi(this);
 
-    // just called to initialize the sliders
-    setTextPartColor(-1, -1, -1);
-
-	//getAvailableCellColors(index.column()));
-	//ui->spinLigthness->setValue(logView->getColorizeRow().ligthness);
-
-//	rowLayoutWidget->setAvailableRowColors(getAvailableRowColors());
-	//rowLayoutWidget->getColorizeColumnSpin()->setValue(getColorizeColumn(index.column()));
-//	getLightnessSpin()->setValue(getColorizeRow().ligthness);
-	
-#if 1
-	auto addColorDialog = [&](QToolButton *button) {
-
-		ColorPicker *colorPicker = new ColorPicker(this);
-		colorPicker->setWindowFlags(Qt::Widget);
-		//colorPicker->hide();
-		auto action = new QWidgetAction(button);
-		action->setDefaultWidget(colorPicker);
-		auto menu = new QMenu(button);
-		menu->addAction(action);
-		colorPicker->setAvailableColors(Settings().general().availableColors());
-
-		connect(menu, &QMenu::aboutToShow, this, [=] {
-			int idx = 0;
-			if (button == ui->btnPickCellColor) {
-				colorPicker->setUsedColors(logView->getAvailableCellColors(index.column()));
-			}
-			if (button == ui->btnPickRowColor) {
-				colorPicker->setUsedColors(logView->getAvailableRowColors());
-			}
-			colorPicker->show();
-		});
-		connect(colorPicker, &ColorPicker::availableColorsChanged, this, [=] {
-			Settings().general().availableColors(colorPicker->getAvailableColors());
-		});
-		connect(colorPicker, &ColorPicker::close, this, [=] { menu->hide();   });
-		connect(colorPicker, &ColorPicker::usedColorsChanged, this, [=]() {
-			//menu->hide();
-			if (button == ui->btnPickCellColor) {
-				logView->setAvailableCellColors(colorPicker->getUsedColors(), index.column());
-			}
-			//OnFillColorChanged(color); // Call the "slot" in this class
-		});
-
-
-		button->setMenu(menu);
-
-		button->setPopupMode(QToolButton::InstantPopup);
-		button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-
-	};
-	addColorDialog(ui->btnPickCellColor);
-	addColorDialog(ui->btnPickRowColor);
-#endif
-}
-#endif
 void RowLayoutWidget::addColorDialog(QToolButton *button)
 {
 	ColorPicker *colorPicker = new ColorPicker(this);
@@ -154,6 +91,13 @@ void RowLayoutWidget::addColorDialog(QToolButton *button)
 		if (button == ui->btnPickRowColor) {
 			colorPicker->setUsedColors(_rowStyle.getRowColorizer().availableColors);
 		}
+		if (button == ui->btnPickTextpartColor) {
+			if (ui->cbTextPartColor->currentIndex() == -1)
+				return;
+			colorPicker->setUsedColors(
+				{ _rowStyle.textPartColorizer.getByText(ui->cbTextPartColor->currentText())->color }
+			);
+		}
 		colorPicker->show();
 	});
 	connect(colorPicker, &ColorPicker::availableColorsChanged, this, [=] {
@@ -168,7 +112,16 @@ void RowLayoutWidget::addColorDialog(QToolButton *button)
 		if (button == ui->btnPickRowColor) {
 			_rowStyle.getRowColorizer().availableColors = colorPicker->getUsedColors();
 		}
-
+		if (button == ui->btnPickTextpartColor) {
+			QString textPart = ui->cbTextPartColor->currentText();
+			if (textPart.length() == 0)
+				return;
+			_rowStyle.textPartColorizer.addText(
+				textPart, 
+				colorPicker->getUsedColors().at(0)
+			);
+			emit rowStyleChanged(_rowStyle);
+		}
 		emit rowStyleChanged(_rowStyle);
 		//OnFillColorChanged(color); // Call the "slot" in this class
 	});
@@ -273,6 +226,29 @@ void RowLayoutWidget::on_sliderTextPartColor_valueChanged(int value)
     emit rowStyleChanged(_rowStyle);
 }
 
+void RowLayoutWidget::on_btnPickTextpartColor_clicked()
+{
+	
+}
+
+void RowLayoutWidget::on_btnAddTextPart_clicked()
+{
+	QString text = ui->cbTextPartColor->currentText();
+	if (text.length() == 0)
+		text = "new";
+	ui->cbTextPartColor->addItem(text);	
+	_rowStyle.textPartColorizer.addText(text, QColor());
+	emit rowStyleChanged(_rowStyle);
+}
+
+void RowLayoutWidget::on_btnRemoveTextPart_clicked()
+{	
+	_rowStyle.textPartColorizer.removeText(ui->cbTextPartColor->currentText());
+	auto index = ui->cbTextPartColor->currentIndex();
+	ui->cbTextPartColor->removeItem(index);
+	emit rowStyleChanged(_rowStyle);
+}
+
 void RowLayoutWidget::on_sliderRed_valueChanged(int value)
 {
     setTextPartColor(value, -1, -1);
@@ -288,41 +264,13 @@ void RowLayoutWidget::on_sliderBlue_valueChanged(int value)
     setTextPartColor(-1, -1, value);
 }
 
-void RowLayoutWidget::xon_btnPickCellColor_clicked()
-{
-	QColorDialog *d = new QColorDialog(this);
-	d->setWindowFlags(Qt::Widget);
-	d->setOptions(
-		/* do not use native dialog */
-		QColorDialog::DontUseNativeDialog
-		/* you don't need to set it, but if you don't set this
-		the "OK" and "Cancel" buttons will show up, I don't
-		think you'd want that. */
-		| QColorDialog::NoButtons
-		);
-
-	auto widgetAction = new QWidgetAction(this);
-	widgetAction->setDefaultWidget(d);
-	addAction(widgetAction);
-	
-	widgetAction->trigger();
-	//this->parent()->blockSignals(true);
-	//d->exec();
-	//this->parent()->blockSignals(false);
-}
 void RowLayoutWidget::on_btnPickRowColor_clicked()
 {
 	QColorDialog *colorDialog = new QColorDialog(this);
-	//QColorDialog d(this);
-	//d.exec();
+
 	colorDialog->setWindowFlags(Qt::Widget);
-	/* a few options that we must set for it to work nicely */
 	colorDialog->setOptions(
-		/* do not use native dialog */
 		QColorDialog::DontUseNativeDialog
-		/* you don't need to set it, but if you don't set this
-		the "OK" and "Cancel" buttons will show up, I don't
-		think you'd want that. */
 		| QColorDialog::NoButtons
 		);
 	colorDialog->exec();

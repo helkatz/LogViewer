@@ -14,23 +14,6 @@
    <string>Colmunizer</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="5" column="0">
-    <widget class="QTableWidget" name="tablePreview">
-     <property name="rowCount">
-      <number>1</number>
-     </property>
-     <attribute name="horizontalHeaderCascadingSectionResizes">
-      <bool>false</bool>
-     </attribute>
-     <attribute name="horizontalHeaderStretchLastSection">
-      <bool>false</bool>
-     </attribute>
-     <attribute name="verticalHeaderVisible">
-      <bool>false</bool>
-     </attribute>
-     <row/>
-    </widget>
-   </item>
    <item row="1" column="0">
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
@@ -53,12 +36,28 @@
          <property name="editable">
           <bool>true</bool>
          </property>
+         <property name="currentText">
+          <string/>
+         </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="btnAddName">
+        <widget class="QPushButton" name="btnSave">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
-          <string>add</string>
+          <string>Save</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnDelete">
+         <property name="text">
+          <string>Delete</string>
          </property>
         </widget>
        </item>
@@ -74,6 +73,13 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnCancel">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -103,42 +109,15 @@
      </item>
     </layout>
    </item>
-   <item row="8" column="0">
+   <item row="9" column="0">
+    <widget class="QTextEdit" name="editSubject">
+     <property name="toolTip">
+      <string extracomment="Enter columns to parse">Enter columns to parse</string>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QPushButton" name="btnSave">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Save</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnDelete">
-       <property name="text">
-        <string>Delete</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnAddPattern">
-       <property name="text">
-        <string>Add Pattern</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnDeletePattern">
-       <property name="text">
-        <string>Delete Pattern</string>
-       </property>
-      </widget>
-     </item>
      <item>
       <spacer name="horizontalSpacer_2">
        <property name="orientation">
@@ -155,30 +134,9 @@
        </property>
       </spacer>
      </item>
-     <item>
-      <widget class="QPushButton" name="btnCancel">
-       <property name="text">
-        <string>Cancel</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
-   <item row="7" column="0">
-    <widget class="QTextEdit" name="editSubject">
-     <property name="toolTip">
-      <string extracomment="Enter columns to parse">Enter columns to parse</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0" alignment="Qt::AlignBottom">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Preview</string>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="0">
+   <item row="8" column="0">
     <widget class="QLabel" name="label_2">
      <property name="toolTip">
       <string>enter at least one whole logmessage here</string>
@@ -188,12 +146,67 @@
      </property>
     </widget>
    </item>
+   <item row="6" column="0" alignment="Qt::AlignBottom">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Preview</string>
+     </property>
+    </widget>
+   </item>
    <item row="2" column="0">
     <widget class="QLabel" name="label_3">
      <property name="text">
       <string>Column patterns</string>
      </property>
     </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QTableWidget" name="tablePreview">
+     <property name="rowCount">
+      <number>1</number>
+     </property>
+     <attribute name="horizontalHeaderCascadingSectionResizes">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <row/>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <widget class="QPushButton" name="btnAddPattern">
+       <property name="text">
+        <string>Add Pattern</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnDeletePattern">
+       <property name="text">
+        <string>Delete Pattern</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
