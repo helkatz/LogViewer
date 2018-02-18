@@ -42,9 +42,9 @@ find_package(Qt5Network)
 #find_package(logger)
 #find_package(logger 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/logger/*/")
 
-include(external/re2.cmake)
-include(external/boost.cmake)
-add_subdirectory(internal/logger)
+include(/data/binaries/external/re2.cmake)
+include(/data/binaries/external/boost.cmake)
+add_subdirectory(../logger ${CMAKE_BINARY_DIR}/logger)
 
 add_executable(LogViewer ${sources})
 
