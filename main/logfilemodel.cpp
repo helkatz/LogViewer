@@ -92,7 +92,7 @@ bool LogFileModel::query(const Conditions &queryConditions)
             setHeaderData(col++, Qt::Horizontal, tr("%1").arg(capitalize(name)));
         }
 
-        _rows = _parser->getEntriesCount();		
+        _rows = _parser->getRowCount();		
         ObserverFile::createObserver(this, qc().fileName());
     }
     _parser->setFilter(queryConditions.queryString());
@@ -132,7 +132,7 @@ void LogFileModel::observedObjectChanged(const QString& id, const int maxId)
 	{
 		b |= view->followMode();
 	}
-    if (b && id == ObserverFile::createId(qc().fileName())) {
+    if (id == ObserverFile::createId(qc().fileName())) {
         _parser->refresh();
         emit layoutChanged();
     }
@@ -141,7 +141,7 @@ void LogFileModel::observedObjectChanged(const QString& id, const int maxId)
 void LogFileModel::entriesCountChanged(quint32 newCount)
 {
 	Q_UNUSED(newCount);
-    _rows = _parser->getEntriesCount();
+    _rows = _parser->getRowCount();
     emit layoutChanged();
 }
 

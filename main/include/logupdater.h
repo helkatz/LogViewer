@@ -11,6 +11,7 @@
 #include <vector>
 #include <qfilesystemwatcher.h>
 #include "Utils/utils.h"
+#include <common/File.h>
 class ObserverBase : public QObject
 {
 	Q_OBJECT;
@@ -99,7 +100,7 @@ class ObserverFile : public ObserverBase
 	Q_OBJECT
 protected:
 	quint64 _lastSize;
-	File _file;
+	common::File _file;
 	QString _fileName;
 	QFileSystemWatcher _watcher;
 	bool watched;
@@ -123,7 +124,7 @@ public:
 			return true;
 
 		QSharedPointer<ObserverFile> od = QSharedPointer<ObserverFile>(new ObserverFile);
-		od->_file.open(fileName);
+		od->_file.open(fileName.toStdString());
 		od->_lastSize = od->_file.size();
 		od->_fileName = fileName;
 		//od->_owners.append(owner);

@@ -156,8 +156,8 @@ public:
 			//const_cast<LogStashModel*>(this)->blockSignals(false);
 			auto byteArr = repl->readAll();
 			if (byteArr.length() == 0 || repl->error() != QNetworkReply::NoError) {
-				log_error() << "reply from server" << repl->errorString();
-				throw std::exception("network error");
+				log_error() << "reply from server" << repl->errorString();				
+				//throw std::exception("network error");
 			}
 			//if (gotresp == false) {
 			response = byteArr.data();
@@ -168,13 +168,18 @@ public:
 	}
 };
 QJsonDocument LogStashModel::sendRequest(const QString& uri, const QString& data) const
-{	
-	Requester req(qc().host() + uri, data);
-	while (req.finished == false)
-		QThread::msleep(10);
-	QJsonParseError err;
-	QJsonDocument doc = QJsonDocument::fromJson(req.response.toStdString().c_str(), &err);
-	return doc;
+{
+	try {
+		Requester req(qc().host() + uri, data);
+		while (req.finished == false)
+			QThread::msleep(10);
+		QJsonParseError err;
+		QJsonDocument doc = QJsonDocument::fromJson(req.response.toStdString().c_str(), &err);
+		return doc;
+	}
+	catch (std::exception& e) {
+		return QJsonDocument{};
+	}
 }
 
 LogModel::CurrentRow& LogStashModel::loadData(const QModelIndex &index) const

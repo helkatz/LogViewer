@@ -5,6 +5,7 @@
 #include <re2/regexp.h>
 
 #include "Utils/utils.h"
+
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpressionMatch>
@@ -22,40 +23,58 @@
 
 
 QMap<QString, Parser *> Parser::_parserMap;
-QVector<Parser::ColumnizerData> Parser::_columnizerDataMap;
+Parser::Columnizer::List Parser::Columnizer::_columnizers;
 
 
-void Parser::loadPatternMap()
+void Parser::Columnizer::loadColumnizers()
 {
 	Settings s;
 	foreach(const QString& name, s.childGroups("columnizer"))
 	{
-		ColumnizerData columnizerData;
-		columnizerData.name = name.toStdString();
+		Columnizer columnizer;
+		columnizer.name = name.toStdString();
 
 		foreach(const QString& col, s.childGroups("columnizer/" + name + "/columns"))
 		{
 			Settings::columnizerClass::columnsClass& column = s.columnizer(name).columns(col);
 			// when not set then set it with the first field pattern
-			if (columnizerData.startPattern.length() == 0)
-				columnizerData.startPattern = column.pattern().toStdString();
-			columnizerData.columnNames.push_back(column.name());
-			columnizerData.pattern += column.pattern().toStdString();
+			if (columnizer.startPattern.length() == 0)
+				columnizer.startPattern = column.pattern().toStdString();
+			columnizer.columnNames.push_back(column.name());
+			columnizer.pattern += column.pattern().toStdString();
 			QRegularExpression re("(^.*?)\\((.*?)\\)(.*)");
 			QString searchPattern = column.pattern();
 			searchPattern.replace(re, QString("\\1(COLUMNNAME_%1)\\3").arg(column.name()));
-			columnizerData.searchPattern += searchPattern.toStdString();
+			columnizer.searchPattern += searchPattern.toStdString();
 		}
-		//columnizerData.pattern += "$";
-		_columnizerDataMap.push_back(columnizerData);
-
+		//columnizer.pattern += "$";
+		_columnizers.push_back(columnizer);
+		std::sort(_columnizers.begin(), _columnizers.end(), [](const auto& lhs, const auto& rhs) -> bool{
+			return lhs.columnNames.size() > rhs.columnNames.size();
+		});
 	}
-	ColumnizerData columnizerData;
-	columnizerData.name = "default_columnizer";
-	columnizerData.columnNames.push_back("Message");
-	columnizerData.pattern = "(.*)";
-	columnizerData.startPattern = "(.*)";
-	_columnizerDataMap.push_back(columnizerData);
+
+	Columnizer columnizer;
+	columnizer.name = "default_columnizer";
+	columnizer.columnNames.push_back("Message");
+	columnizer.pattern = "(.*)";
+	columnizer.startPattern = "(.*)";
+	_columnizers.push_back(columnizer);
+}
+
+boost::optional<Parser::Columnizer> Parser::Columnizer::findColumnizer(common::File& file)
+{
+	int tryLines = 20;
+	QString line = file.readLine();
+	Columnizer foundColumnizer;
+	foreach(const Columnizer& columnizer, _columnizers) {
+		QRegularExpression re(columnizer.pattern.c_str());
+		QRegularExpressionMatch match = re.match(line);
+		if (match.hasMatch() == false)
+			continue;
+		return columnizer;
+	}
+	return boost::none;
 }
 
 Parser *Parser::findParser(const QString& fileName)
@@ -67,7 +86,7 @@ Parser *Parser::findParser(const QString& fileName)
 Parser::Parser(QObject *parent, QString fileName) :
 	QThread(parent),
 	_fileName(fileName),
-	_re(nullptr),
+	_avgEntrySize(0),
 	_linesCount(0),
 	_entriesCount(0),
 	_entriesCache(100),
@@ -75,8 +94,8 @@ Parser::Parser(QObject *parent, QString fileName) :
 	_backEntriesCache(1)
 
 {
-	loadPatternMap();
-	_file.resizeBuffer(0x100000);
+	Columnizer::loadColumnizers();
+	//_file.resizeBuffer(0x100000);
 	connect(this, SIGNAL(entriesCountChanged(quint32)), parent, SLOT(entriesCountChanged(quint32)));
 	return;
 }
@@ -87,17 +106,30 @@ Parser::~Parser()
 
 void Parser::refresh()
 {
-	_file.reset();
-	_file.seek(_lastFileSize + 1);
-	LogEntry entry(columnNames().size());
-	while (readLogEntry(_file, entry, false)) {
-		//_entriesCount++;
-		if (_entriesCache.backRow() == _entriesCount - 1) {
-			_entriesCache.pushBack(entry);
-			_entriesCache.setBackRow(_entriesCount - 1);
-		}
-		_backEntriesCache.pushBack(entry);
+	_file.reset();	
+	if (_backEntriesCache.size() == 0) {
+		fillBackEntriesCache();
+		fillFrontEntriesCache();
 	}
+	else if (_file.size() < _lastFileSize) {
+		calcRowCount();
+	}
+	else {
+		calcRowCount();
+		fillBackEntriesCache();
+		/*
+		_file.seek(_lastFileSize + 1);
+		LogEntry entry(columnNames().size());
+		while (readLogEntry(_file, entry)) {
+			if (_entriesCache.backRow() == _entriesCount - 1) {
+				_entriesCache.pushBack(entry);
+				_entriesCache.setBackRow(_entriesCount);
+			}
+			_entriesCount++;
+			_backEntriesCache.pushBack(entry);
+		}*/
+	}
+	emit entriesCountChanged(_entriesCount);
 	_file.reset();
 	_lastFileSize = _file.size();
 }
@@ -113,12 +145,6 @@ void Parser::updateEntriesCount(quint32 maxRows)
 	//_lastFileSize = _file.size();
 }
 #endif
-quint64 Parser::getEntriesCount()
-{
-	if (_entriesCount == 0)
-		_entriesCount = calcRows();
-	return _entriesCount;
-}
 
 quint64 Parser::getLinesCount()
 {
@@ -127,7 +153,7 @@ quint64 Parser::getLinesCount()
 
 QString Parser::getFileName() const
 {
-	return _file.getFileName();
+	return _file.getFileName().c_str();
 }
 
 bool Parser::open(const QString& fileName)
@@ -135,40 +161,53 @@ bool Parser::open(const QString& fileName)
 	if (_file.open(fileName.toStdString().c_str()) == false)
 		return false;
 	_lastFileSize = _file.size();
+
 	findColumnizer();
-	_entriesCount = calcRows();
+
+	calcRowCount();
 	
+	fillBackEntriesCache();
+	fillFrontEntriesCache();
+	return true;
+}
+
+void Parser::fillBackEntriesCache()
+{
 	LogEntry entry(columnNames().size());
 	quint32 itemsLeft = _backEntriesCache.maxSize();
-	quint32 row = _entriesCount;
-	_file.seekEnd();
-	bool first = true;
-	while (itemsLeft-- && readLogEntry(_file, entry, false, -1)) {
-		if (row = _entriesCount)
-			_backEntriesCache.pushFirst(row, entry);
-		else
-			_backEntriesCache.pushFront(entry);
-		entry.clear();
-	}
 
-	itemsLeft = _frontEntriesCache.maxSize();
-	row = 0;
-	_file.seek(0);
-	while (itemsLeft-- && readLogEntry(_file, entry, false, 1)) {
-		if (row = 0)
-			_frontEntriesCache.pushFirst(row, entry);
-		else
-			_frontEntriesCache.pushBack(entry);
-		entry.clear();
+	auto read = [&](LogEntry& entry) { return  itemsLeft-- && readLogEntry(_file, entry, -1); };
+
+	_file.seekEnd();
+	_backEntriesCache.clear();
+	if (read(entry)) {
+		_backEntriesCache.pushFirst(getRowCount(), entry);
+		while (read(entry))
+			_backEntriesCache.pushFront(entry);
 	}
-	return true;
+}
+
+void Parser::fillFrontEntriesCache()
+{
+	LogEntry entry(columnNames().size());
+	quint32 itemsLeft = _frontEntriesCache.maxSize();
+
+	auto read = [&](LogEntry& entry) { return  itemsLeft-- && readLogEntry(_file, entry, 1); };
+
+	_file.seek(0);
+	_frontEntriesCache.clear();
+	if (read(entry)) {
+		_frontEntriesCache.pushFirst(0, entry);
+		while (read(entry))
+			_frontEntriesCache.pushBack(entry);
+	}
 }
 
 void Parser::setFilter(const QString& filter)
 {
 	_filter = filter;
-	QString pattern = _columnizerData.searchPattern.c_str();
-	QRegularExpression re("(\\w*)[=]*'(.*?)'[ ]*(and|or|[ ]|$)");
+	QString pattern = _columnizer->searchPattern.c_str();
+	QRegularExpression re("\\w*)[=]*'(.*?)'[ ]*(and|or|[ ]|$)");
 	auto matches = re.globalMatch(filter);
 	while (matches.hasNext()) {
 		auto m = matches.next();
@@ -179,7 +218,7 @@ void Parser::setFilter(const QString& filter)
 	pattern.replace(QRegularExpression("COLUMNNAME_\\w*"), ".*?");
 	RE2::Options re_options;
 	re_options.set_dot_nl(true);
-	_reSearch = new RE2(pattern.toStdString(), re_options);
+	_reSearch = std::make_shared<RE2>(pattern.toStdString(), re_options);
 }
 
 bool Parser::start(bool runInBackground)
@@ -193,13 +232,6 @@ bool Parser::start(bool runInBackground)
 		QMessageBox::information(0, "error", "could not find a columnizer");
 		return false;
 	}
-	/*
-	_db = Utils::getDatabase("sqlite_internal", "QSQLITE");
-	//_db.setDatabaseName("db.sqlite");
-	_db.setDatabaseName(":memory:");
-	if (_db.open() == false)
-	QMessageBox::information(0, "error", "could not open sqlite database");
-	*/
 	return true;
 	if (runInBackground)
 		QThread::start();
@@ -211,39 +243,29 @@ bool Parser::start(bool runInBackground)
 bool Parser::findColumnizer()
 {
 	int tryLines = 20;
-	while (_file.hasNext() && --tryLines > 0) {
-		QString line = _file.readLine();
-		foreach(ColumnizerData pattern, _columnizerDataMap)
-		{
-			QRegularExpression re(pattern.pattern.c_str());
-			QRegularExpressionMatch match = re.match(line);
-			if (match.hasMatch() == false)
-				continue;
-			if (_re)
-				delete _re;
-			
-			_columnizerData = pattern;
 
-			_qre.setPattern(_columnizerData.pattern.c_str());
-			_qre.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
-			RE2::Options re_options;
-			re_options.set_dot_nl(true);
-			_re = new RE2(_columnizerData.pattern.c_str(), re_options);
-			_reStart = new RE2(_columnizerData.startPattern.c_str(), re_options);
+	while (_file.hasNext() && --tryLines > 0) {
+	}
+	_columnizer = Columnizer::findColumnizer(_file);
+	if (!_columnizer)
+		return false;
+
+	_qre.setPattern(_columnizer->pattern.c_str());
+	_qre.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
+	RE2::Options re_options;
+	re_options.set_dot_nl(true);
+	_re = std::make_shared<RE2>(_columnizer->pattern.c_str(), re_options);
+	_reStart = std::make_shared<RE2>(_columnizer->startPattern.c_str(), re_options);
 	
-			_arguments_ptrs.resize(pattern.columnNames.size());
-			_arguments.resize(pattern.columnNames.size());
-			_entries.resize(pattern.columnNames.size());
-			for (std::size_t i = 0; i < _entries.size(); i++) {
-				_arguments[i] = &_entries[i];
-				_arguments_ptrs[i] = &_arguments[i];
-			}
-			_file.reset();
-			return true;
-		}
+	_arguments_ptrs.resize(_columnizer->columnNames.size());
+	_arguments.resize(_columnizer->columnNames.size());
+	_entries.resize(_columnizer->columnNames.size());
+	for (std::size_t i = 0; i < _entries.size(); i++) {
+		_arguments[i] = &_entries[i];
+		_arguments_ptrs[i] = &_arguments[i];
 	}
 	_file.reset();
-	return false;
+	return true;
 }
 
 QString& escape(QString& str)
@@ -253,17 +275,28 @@ QString& escape(QString& str)
 		.replace("'", "''");
 }
 #include <type_traits>
-quint64 Parser::calcRows()
+
+quint64 Parser::getRowCount()
 {
-	return 10000;
-	File file;
-	//return INT32_MAX / 100;
+	if (_entriesCount == 0)
+		_entriesCount = calcRowCount();
+	return _entriesCount;
+}
+
+quint64 Parser::calcRowCount(bool extended)
+{
+	if (!extended && _avgEntrySize > 0) {
+		_entriesCount = _file.size() / _avgEntrySize;
+		return _entriesCount;
+	}
+
+	common::File file;
 	if (file.open(_fileName.toStdString().c_str()) == false)
 		return 0;
 
 	quint64 checkedBytes = 0;
 	quint64 checkedRows = 0;
-	quint64 avgEntrySize = 0;
+	_avgEntrySize = 0;
 	const quint32 CHECK_ROWS = 1000;
 
 	quint64 fileSize = file.size();
@@ -271,13 +304,13 @@ quint64 Parser::calcRows()
 	std::string logMessage;
 	LogEntry logEntry(0);
 	while (file.hasNext() && checkedRows < CHECK_ROWS) {
-		if (readLogEntry(file, logEntry, true) == false)
+		if (readLogEntry(file, logEntry) == false)
 			continue;
 		checkedRows++;
 		quint32 entrySize = logEntry.size;
 
 		checkedBytes += entrySize;
-		avgEntrySize = checkedBytes / checkedRows;
+		_avgEntrySize = checkedBytes / checkedRows;
 		if (checkedRows % 4 == 0) {
 			quint32 step = fileSize / CHECK_ROWS;
 			file.seek(step * checkedRows);
@@ -285,36 +318,39 @@ quint64 Parser::calcRows()
 		}
 
 	}
-	quint64 avgRows = fileSize / (checkedBytes / checkedRows);
+	if (_avgEntrySize == 0)
+		return 0;
+	quint64 avgRows = fileSize / _avgEntrySize;
 	quint32 rows = 0;
 	if (avgRows < 1000) {
 		file.reset();
 		while (file.hasNext()) {
-			if (readLogEntry(file, logEntry, true) == false)
+			if (readLogEntry(file, logEntry) == false)
 				continue;
 			rows++;
 		}
 	}
 	else
 		rows = avgRows;
-
 	qDebug() << "calc rows" << rows;
+	_entriesCount = rows;
 	return rows;
 }
 
+
 quint64 Parser::getRowFromFilePos(quint64 filePos)
 {
-	return round((double)getEntriesCount() * ((double)filePos / _file.size()));
+	return round((double)getRowCount() * ((double)filePos / _file.size()));
 }
 
 quint64 Parser::getFilePosFromRow(quint64 row)
 {
-	if (row == _entriesCount)
+	if (row == getRowCount())
 		return _file.size();
-	return round((double)_file.size() *((double)row / getEntriesCount()));
+	return round((double)_file.size() *((double)row / getRowCount()));
 }
 
-bool Parser::readNextLogEntry(File& file, LogEntry& entry)
+bool Parser::readNextLogEntry(common::File& file, LogEntry& entry)
 {
 	bool startMatched = false;
 	bool first = true;
@@ -349,13 +385,14 @@ bool Parser::readNextLogEntry(File& file, LogEntry& entry)
 				break;
 			entry.filePos = lineStartPos;
 			startMatched = true;
+			file.keepBufferAtOnce(line);
 		}
 		else {
 			if (startMatched == false)
 				file.keepBufferAtOnce(true);
 		}
 		file.readLine();
-	}
+ 	}
 	if (startMatched == false)
 		return false;
 	entry.rawMessage = file.getBufferAtOnce();
@@ -364,7 +401,7 @@ bool Parser::readNextLogEntry(File& file, LogEntry& entry)
 	return true;
 }
 
-bool Parser::readPrevLogEntry(File& file, LogEntry& entry)
+bool Parser::readPrevLogEntry(common::File& file, LogEntry& entry)
 {
 	//log_func_entry_leave();
 	bool startMatched = false;
@@ -397,9 +434,8 @@ bool Parser::readPrevLogEntry(File& file, LogEntry& entry)
 	return true;
 }
 
-quint32 Parser::readLogEntry(File& file, LogEntry& entry, bool matchOnly, int items)
+quint32 Parser::readLogEntry(common::File& file, LogEntry& entry, int items)
 {
-	Q_UNUSED(matchOnly);
 	bool startMatched = false;
 	bool first = true;
 	
@@ -441,7 +477,7 @@ bool Parser::readLogEntry(quint64 row, LogEntry& entry, const QString& where, bo
 	return readLogEntry(_file, entry, where, searchDown);
 }
 
-bool Parser::readLogEntry(File& file, LogEntry& entry, const QString& where, bool searchDown)
+bool Parser::readLogEntry(common::File& file, LogEntry& entry, const QString& where, bool searchDown)
 {
 	// find line with condition
 	char *line;
@@ -454,7 +490,7 @@ bool Parser::readLogEntry(File& file, LogEntry& entry, const QString& where, boo
 	file.seek(file.posTail());
 
 	// now read the whole log entry  on the found position
-	readLogEntry(file, entry, false);
+	readLogEntry(file, entry);
 	
 	if (_entriesCache.findInQueue(entry)) {
 		return true;
@@ -470,10 +506,12 @@ bool Parser::readLogEntry(File& file, LogEntry& entry, const QString& where, boo
 
 int Parser::fetchToEnd(quint32 items)
 {
-	LogEntry curEntry = _backEntriesCache.back();
+	LogEntry curEntry(columnNames().size());
 	//_file.seek(curEntry.filePos);
+
 	_file.seekEnd();
-	readLogEntry(_file, curEntry, true, -1);
+	readLogEntry(_file, curEntry, -1);
+
 	_entriesCache.pushFirst(_entriesCount - 1, curEntry);
 	return 1;
 	quint32 itemsFetched = 0;
@@ -486,9 +524,9 @@ int Parser::fetchToEnd(quint32 items)
 
 int Parser::fetchToBegin(quint32 items)
 {
-	LogEntry curEntry = _frontEntriesCache.back();
+	LogEntry curEntry(columnNames().size());;
 	_file.seek(0);
-	readLogEntry(_file, curEntry, true, 1);
+	readLogEntry(_file, curEntry, 1);
 	_entriesCache.pushFirst(0, curEntry);
 	return 1;
 	quint32 itemsFetched = 0;
@@ -550,7 +588,7 @@ int Parser::fetchMoreFrom(quint32 row, quint32 items, bool back)
 			readLogEntry(_entriesCache.backRow() + 1, curEntry);
 			itemsFetched++;
 		}
-		_entriesCache.setBackRow(getEntriesCount());
+		_entriesCache.setBackRow(getRowCount());
 		//row += itemsFetched;
 		//getRowFromFilePos()
 		return itemsFetched;
@@ -631,7 +669,7 @@ bool Parser::readLogEntry(quint64 row, LogEntry& entry)
 {
 	if (row < _entryHeads.size()) {
 		_file.seek(_entryHeads.at(row));
-		readLogEntry(_file, entry, false);
+		readLogEntry(_file, entry);
 		return true;
 	}
 	if (_entriesCache.size()) {
@@ -652,7 +690,7 @@ bool Parser::readLogEntry(quint64 row, LogEntry& entry)
 			log_trace(5) << "PREV  " << INFO1 << " seek " << frontEntry.filePos << " items " << _entriesCache.frontRow() - row;			
 			while (requiredItems-- > 0) {
 				_file.seek(entry.filePos - 2);
-				if (readLogEntry(_file, entry, false, -1) == false)
+				if (readLogEntry(_file, entry, -1) == false)
 					break;
 				_entriesCache.pushFront(entry);
 			}
@@ -663,7 +701,7 @@ bool Parser::readLogEntry(quint64 row, LogEntry& entry)
 			log_trace(5) << "NEXT  " << INFO1 << " seek " << backEntry.filePos + backEntry.size << " items " << requiredItems;
 			_file.seek(backEntry.filePos + backEntry.size);
 			while (requiredItems-- > 0) {
-				if (readLogEntry(_file, entry, false) == false) {
+				if (readLogEntry(_file, entry) == false) {
 					break;
 				}
 				log_trace(5) << "  -readed pos " << entry.filePos << " size " << entry.size << " msgidx " << entry.entries.at(0).data();
@@ -674,7 +712,10 @@ bool Parser::readLogEntry(quint64 row, LogEntry& entry)
 	}
 	quint64 filePos = getFilePosFromRow(row);
 	_file.seek(filePos);
-	readLogEntry(_file, entry, false);
+	readLogEntry(_file, entry);
+	if (entry.size == 0) {
+		log_trace(5) << "RAND  size 0" << INFO1;
+	}
 	_entriesCache.pushFirst(row, entry);
 	log_trace(5) << "RAND  " << INFO1
 		<< "filePos" << filePos << "pos2row" << filePos << getRowFromFilePos(filePos)
@@ -689,8 +730,8 @@ __LReturn:
 bool Parser::importMessages()
 {
 	//#define WRITE_OUT
-	File file;
-	file.open(_fileName);
+	common::File file;
+	file.open(_fileName.toStdString());
 
 	while (!file.hasNext()) {
 		quint64 filePos = file.posHead();

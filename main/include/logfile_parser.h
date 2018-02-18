@@ -11,6 +11,8 @@
 #include <re2/prog.h>
 #include <re2/regexp.h>
 #include "Utils/utils.h"
+
+#include <common/File.h>
 namespace parser {
 	void testingMain();
 }
@@ -34,7 +36,7 @@ struct LogEntry
 		size = other.size;
 		filePos = other.filePos;
 		row = other.row;
-		//logMessage = other.logMessage;
+		rawMessage = other.rawMessage;
 		entries = other.entries;
 	}
 
@@ -109,8 +111,13 @@ public:
 		if (size() > 2 && at(0).filePos == at(1).filePos)
 			_CrtDbgBreak();
 	}
+
 	void push(LogEntry& entry, bool back = true)
 	{
+		auto idx = atoi(entry.entries.at(0).c_str());
+		if (idx < 2000) {
+			printf("");
+		}
 		if (back)
 			push_back(entry);
 		else
@@ -126,7 +133,8 @@ public:
 		}
 		if (back)
 			_backRow++;
-		check();
+		assert(size() <= 2 || at(0).filePos != at(1).filePos);
+		//check();
 	}
 	void setFrontRow(quint32 row)
 	{
@@ -240,54 +248,62 @@ class Parser : public QThread
 {
 	Q_OBJECT;
 	QMutex _mutex;
-	File _file;
+	common::File _file;
 	quint64 _lastFileSize;
 	QString _fileName;
 	QString _filter;
 	QRegularExpression _qre;
 	QRegularExpressionMatch _qmatch;
-	RE2 *_re;			// regex for the whole logmessage pattern
-	RE2 *_reStart;		// regex to detect only entry start
-	RE2 *_reSearch;
+	std::shared_ptr<RE2> _re;			// regex for the whole logmessage pattern
+	std::shared_ptr<RE2> _reStart;		// regex to detect only entry start
+	std::shared_ptr<RE2> _reSearch;
 	std::vector<RE2::Arg *> _arguments_ptrs;
 	std::vector<RE2::Arg> _arguments;
 	std::vector<std::string> _entries;
 
 	std::vector<quint64> _entryHeads;
+	uint32_t _avgEntrySize;
 	quint64 _linesCount; 
 	quint64 _entriesCount;
 	Queue _entriesCache;
 	Queue _backEntriesCache;
 	Queue _frontEntriesCache;
-	struct ColumnizerData
+	struct Columnizer
 	{
+		using List = QVector<Columnizer>;
 		std::string name;
 		std::string pattern;
 		std::string startPattern;
 		std::string searchPattern;
 		QList<QString> columnNames;
+
+		static Columnizer::List _columnizers;
+
+		static void loadColumnizers();
+		static boost::optional<Columnizer> findColumnizer(common::File& file);
+
 	};
 	
-	ColumnizerData _columnizerData;
+	boost::optional<Columnizer> _columnizer;
 
 protected:
 	
 	static QMap<QString, Parser *> _parserMap;
 
-	static QVector<ColumnizerData> _columnizerDataMap;
-
-	static void loadPatternMap();
 
 	bool importMessages();
 
-	bool Parser::readPrevLogEntry(File& file, LogEntry& entry);
-	bool Parser::readNextLogEntry(File& file, LogEntry& entry);
+	void fillBackEntriesCache();
+	void fillFrontEntriesCache();
 
-	quint32 readLogEntry(File& file, LogEntry& entry, bool matchOnly, int items = 1);
+	bool Parser::readPrevLogEntry(common::File& file, LogEntry& entry);
+	bool Parser::readNextLogEntry(common::File& file, LogEntry& entry);
+
+	quint32 readLogEntry(common::File& file, LogEntry& entry, int items = 1);
 	
-	bool readLogEntry(File& file, LogEntry& entry, const QString& where, bool searchDown = true);
+	bool readLogEntry(common::File& file, LogEntry& entry, const QString& where, bool searchDown = true);
 
-	quint64 calcRows();
+	quint64 calcRowCount(bool extended = false);	
 
 	quint64 getRowFromFilePos(quint64 filePos);
 
@@ -305,9 +321,9 @@ public:
 
 	static Parser *findParser(const QString& fileName);
 
-	const QList<QString>& columnNames()
+	const QList<QString> columnNames()
 	{
-		return _columnizerData.columnNames;
+		return _columnizer ? _columnizer->columnNames : QList<QString>{};
 	}
 	
 	void refresh();
@@ -319,7 +335,7 @@ public:
 
 	bool open(const QString& fileName);
 
-	quint64 getEntriesCount();
+	quint64 getRowCount();
 
 	quint64 getLinesCount();
 

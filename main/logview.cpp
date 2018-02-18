@@ -186,81 +186,81 @@ void LogView::setModifiedPos(quint32 row)
 
 void LogView::verticalScrollbarAction(int action)
 {
-	log_trace(5) << action;
+	//log_trace(5) << action;
 }
 
 void LogView::verticalScrollbarValueChanged(int value)
 {
-	log_join(logger::Logger::Level::Debug) << "change" << _lastVerticalScrollPos << value;
+	//log_join(logger::Logger::Level::Debug) << "change" << _lastVerticalScrollPos << value;
 	if (value == _lastVerticalScrollPos)
 		return;
 	
 	bool down = value > _lastVerticalScrollPos;	
 	//log_trace(5) << "change" << _lastVerticalScrollPos << "to" << value;
 	_lastVerticalScrollPos = value;
+	auto min = verticalScrollBar()->minimum();
+	auto max = verticalScrollBar()->maximum();// +verticalScrollBar()->pageStep();
 	auto visibleRows = verticalScrollBar()->pageStep();
 	int fetched = 0;
-	if (value == verticalScrollBar()->minimum()) {
-		model()->fetchToBegin();
-		emit model()->layoutChanged();
+	
+	if (value == min) {
+		//verticalScrollBar()->blockSignals(true);
+		model()->fetchToBegin();				
+		//emit model()->layoutChanged();
+		//verticalScrollBar()->blockSignals(false);
+		//emit verticalScrollBar()->setValue(0);
 		return;
 	}
 	else if (value == verticalScrollBar()->maximum()) {
 		model()->fetchToEnd();
-		emit model()->layoutChanged();
-		return;
+		//emit model()->layoutChanged();
+		//return;
 	}
-	else if (value > verticalScrollBar()->minimum() + visibleRows
-			 && value < verticalScrollBar()->maximum() - visibleRows) {
+	else if (value > min + visibleRows && value < max - visibleRows) {
 		//log_trace(5) << "scrollbar value=" << value << "fetched=" << fetched;
 		model()->rowCount();
+		return;
 	}
-	else if (down == true && value >= verticalScrollBar()->maximum() - visibleRows) {
+	else if (down == true && value >= max - visibleRows) {
 		blockSignals(true);
 		fetched = model()->fetchMoreFrom(value, visibleRows, true);
 		log_trace(5) << "scrollbar value=" << value << "fetched=" << fetched;
-		verticalScrollBar()->blockSignals(true);
-		verticalScrollBar()->setValue(value - fetched);
+		//verticalScrollBar()->blockSignals(true);
+		//verticalScrollBar()->setValue(value - fetched);
 		_lastVerticalScrollPos = value - fetched;
 
-		verticalScrollBar()->blockSignals(false);
+		//verticalScrollBar()->blockSignals(false);
 		QModelIndex index = model()->index(currentIndex().row() - fetched, currentIndex().column());
 		//setCurrentIndex(index);
 		blockSignals(false);
 		log_trace(5) << "change done " << currentIndex().row() << verticalScrollBar()->value();
-		repaint();
-		emit model()->layoutChanged();
-	} else if (down == false && value < verticalScrollBar()->minimum() + visibleRows) {
+		//repaint();
+		//emit model()->layoutChanged();
+	} else if (down == false && value < min + visibleRows) {
 		blockSignals(true);
 		fetched = model()->fetchMoreFrom(value, visibleRows, false);
 		log_trace(5) << "scrollbar value=" << value << "fetched=" << fetched;
-		verticalScrollBar()->blockSignals(true);
-		verticalScrollBar()->setValue(value + fetched);
+		//verticalScrollBar()->blockSignals(true);
+		//verticalScrollBar()->setValue(value + fetched);
 		_lastVerticalScrollPos = value + fetched;
 
-		verticalScrollBar()->blockSignals(false);
+		//verticalScrollBar()->blockSignals(false);
 		QModelIndex index = model()->index(currentIndex().row() + fetched, currentIndex().column());
 		//setCurrentIndex(index);
 		blockSignals(false);
 		log_trace(5) << "change done " << currentIndex().row() << verticalScrollBar()->value();
-		repaint();
-		emit model()->layoutChanged();
+		//repaint();
+		//emit model()->layoutChanged();
 	}
+
+	verticalScrollBar()->blockSignals(true);
+	//repaint();
+	emit model()->layoutChanged();
+	verticalScrollBar()->blockSignals(false);
+	emit verticalScrollBar()->setValue(_lastVerticalScrollPos);
+
 }
 
-#if 0
-void LogView::setAvailableCellColors(const ColorList& colors, int col)
-{
-	_availableCellColors[col] = colors;
-	emit model()->layoutChanged();
-}
-
-void LogView::setAvailableRowColors(const ColorList& colors)
-{
-	_availableRowColors = colors;
-	emit model()->layoutChanged();
-}
-#endif
 void LogView::writeSettings(const QString &basePath)
 {
 	Settings s(basePath);
@@ -272,10 +272,9 @@ void LogView::writeSettings(const QString &basePath)
 	}
 	s.view().followMode(followMode());
 	s.view().font(_rowStyle.font);
-	s.view().fontSize(_rowStyle.font.pointSize());
-	//s.view().alternatingRowColors(alternatingRowColors());
+	s.view().fontSize(_rowStyle.fontSize);
 	s.view().rowStyle().alternatingRowColors(_rowStyle.alternateRowColors);
-	
+	s.view().header(horizontalHeader()->saveState());
 	s.view().availableRowColors(_rowStyle.getRowColorizer().availableColors);
 	int idx = 0;
 	foreach(TColoredTextPart ctp, _rowStyle.textPartColorizer.getList()) {
@@ -309,10 +308,12 @@ void LogView::readSettings(const QString &basePath)
 	
 	QFont f = s.view().font();
 	f.setPointSize(s.view().fontSize());
-	_rowStyle.font = f;
 	setFont(f);
+	_rowStyle.font = f;
+	_rowStyle.fontSize = s.view().fontSize();
 	_rowStyle.alternateRowColors = s.view().rowStyle().alternatingRowColors();
 	_rowStyle.getRowColorizer().availableColors = s.view().availableRowColors();
+	//horizontalHeader()->restoreState(s.view().header());
 	foreach(QString group, s.childGroups("view/rowStyle/textColorizer")) {
 		getRowStyle().textPartColorizer.addText(
 			s.view().rowStyle().textColorizer(group).textPart(),
@@ -484,7 +485,7 @@ void LogView::contextMenu(const QPoint& point)
 		setAlternatingRowColors(rowStyle.alternateRowColors);
 		setFont(rowStyle.font);
 		setFontSize(rowStyle.fontSize);
-		});
+	});
 
 	widgetAction = new QWidgetAction(&menu);
 	widgetAction->setDefaultWidget(rowLayoutWidget);
@@ -505,7 +506,7 @@ void LogView::contextMenu(const QPoint& point)
 	menu.addAction(action);
 
 	QMenu *visbleColumnsMenu = menu.addMenu(tr("Visible columns"));
-	QSqlRecord cols = logModel->getColumnsInformation();
+	QSqlRecord cols = logModel->columnsInformation();
 
 	for(int col = 0; col < logModel->columnCount(); col++) {
 		QCheckBox *checkBox = new QCheckBox(&menu);
@@ -615,7 +616,7 @@ LogWindow *LogWindow::create(Conditions qc, bool useTemplate)
 	try {
 		if (qc.modelClass().length()) {
 			if (qc.modelClass() == "LogSqlModel")
-				model = new LogModel(NULL);
+				model = new LogDatabaseModel(NULL);
 			else if (qc.modelClass() == "LogFileModel")
 				model = new LogFileModel(NULL);
 			else if (qc.modelClass() == "LogStashModel")
@@ -705,6 +706,7 @@ void LogWindow::setModel(LogModel *model)
 	_logView->setModel(model);
 	_detailView->setModel(model);
 	connect(model, SIGNAL(layoutChanged()), _logView, SLOT(dataChanged()));
+	connect(_logView, SIGNAL(scrolltable(QModelIndex)), _logView, SLOT(doScroll(QModelIndex index)));
 	connect(model, SIGNAL(setModifiedPos(quint32)), _logView, SLOT(setModifiedPos(quint32)));
 	connect(_logView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),
 			_detailView, SLOT(currentRowChanged(QModelIndex,QModelIndex)));

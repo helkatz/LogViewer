@@ -29,6 +29,8 @@
 #include "logstashmodel.h"
 #include "logfilemodel.h"
 
+//Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+
 using namespace logger;
 
 using namespace std;
@@ -102,31 +104,15 @@ public:
 };
 
 
-int CALLBACK WinMain(
-	_In_ HINSTANCE hInstance,
-	_In_ HINSTANCE hPrevInstance,
-	_In_ LPSTR     lpCmdLine,
-	_In_ int       nCmdShow)
+void initLogging()
 {
-	const QSettings::Format XmlFormat =
-		QSettings::registerFormat("xml", readXmlFile, writeXmlFile);
-
-	QSettings settings("test.ini", QSettings::Format::IniFormat);// QSettings::UserScope, "MySoft", "Star Runner");
-	settings.setDefaultFormat(XmlFormat);
-	Settings::setOrganisation("ACOM");
-	Settings::setApplication("LogViewer");
-
-	_putenv("QT_MESSAGE_PATTERN=\"[%{type}] %{appname} %{threadid} - %{message}\"");
-	_putenv("QT_FATAL_WARNINGS=");
-	qRegisterMetaTypeStreamOperators<ColorList>("ColorList");
-
-
+	return;
 	logger::SqlLogMessageHandler sqlLogHandler;
 	if (sqlLogHandler.init())
 		logger::Logger::register_message_handler(sqlLogHandler);
 
 	logger::LogfileMessageHandler logfileHandler;
-	if (logfileHandler.init(Settings().general().logFile()))
+	if (false && logfileHandler.init(Settings().general().logFile()))
 		logger::Logger::register_message_handler(logfileHandler);
 
 	logger::SyslogMessageHandler syslogHandler;
@@ -143,24 +129,31 @@ int CALLBACK WinMain(
 		.set_delimiter(" ");
 
 #endif
-	/*
-	logger::Logger::set_level(".*", logger::Logger::Level::Trace1);
-	logger::Logger::set_level("Parser.*", logger::Logger::Level::None);
-	logger::Logger::set_level("Observer.*", logger::Logger::Level::Info);
-	logger::Logger::set_level("LogView.*", logger::Logger::Level::Error);
-	*/
-	//log_trace(0) << "thread" << QThread::currentThreadId();
-//2018-01-11 05:45:05.026442400 +0000|6|LogStashModel::loadQueryRangeList|testlog testlog test 000001
-#if 0
-	for (int i = 10000; i <= 19999; i++) {
-		log_debug().set_delimiter("") << "testlog testlog testlog testlog testlog testlog " << i;
-	}
-	Sleep(100000);
-#endif
-	log_debug() << "startup logviewer";
+}
 
+int CALLBACK WinMain(
+	_In_ HINSTANCE hInstance,
+	_In_ HINSTANCE hPrevInstance,
+	_In_ LPSTR     lpCmdLine,
+	_In_ int       nCmdShow)
+{
+	const QSettings::Format XmlFormat =
+		QSettings::registerFormat("xml", readXmlFile, writeXmlFile);
 
+	QSettings settings("test.ini", QSettings::Format::IniFormat);// QSettings::UserScope, "MySoft", "Star Runner");
+	settings.setDefaultFormat(XmlFormat);
+	Settings::setOrganisation("ACOM");
+	Settings::setApplication("LogViewer");
+
+	_putenv("QT_MESSAGE_PATTERN=\"[%{type}] %{appname} %{threadid} - %{message}\"");
+	_putenv("QT_FATAL_WARNINGS=");
+	qRegisterMetaTypeStreamOperators<ColorList>("ColorList");	
+
+	//QCoreApplication::addLibraryPath("c:/builds/logviewer/bin/debug/platforms");
     QApplication a(__argc, __argv);
+	
+	initLogging();
+
 	//new LogWindowTest();
 	//LogStashModelTest().testGetData();
 	//LogFileModelTest().testGetData();

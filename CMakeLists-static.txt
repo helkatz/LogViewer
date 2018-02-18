@@ -32,15 +32,41 @@ file(GLOB_RECURSE sources main/* languages/* forms/* utils/*)
 
 #set(CMAKE_PREFIX_PATH C:/qt/5.9/5.9.1/msvc2015)
 #set(CMAKE_PREFIX_PATH C:/qt5/5.9.3/msvc2015)
-set(CMAKE_PREFIX_PATH C:/qt5/5.10.0/msvc2015)
+#set(CMAKE_PREFIX_PATH C:/qt5/5.10.0/msvc2015)
 #set(CMAKE_PREFIX_PATH C:/qt/5.7/msvc2015)
+set(CMAKE_PREFIX_PATH C:/builds/qt5/dist/msvc2015/x86)
 ##file(GLOB_RECURSE ui_files *.ui)
-#find_package(Qt5)
+
+find_package(Qt5Core)
+find_package(Qt5Gui)
 find_package(Qt5Widgets)
 find_package(Qt5Sql)
 find_package(Qt5Network)
+find_package(Qt5OpenGL)
+find_package(Qt5Svg REQUIRED)
+find_package(PkgConfig)
+#pkg_check_modules(QT5SVG Qt5Svg)
+#return()
 #find_package(logger)
 #find_package(logger 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/logger/*/")
+
+pkg_check_modules(QT5ALL Qt5Widgets Qt5Gui Qt5Svg)
+#message(${QT5ALL_LDFLAGS})
+foreach(plugin ${QQt5OpenGL_PLUGINS} ${Qt5Gui_PLUGINS} ${Qt5Svg_PLUGINS} ${Qt5OpenGL_PLUGINS})
+  get_target_property(_loc ${plugin} LOCATION)
+  message("Plugin ${plugin} is at location ${_loc}")
+  set(plugin_libs ${plugin_libs} ${_loc})
+endforeach()
+
+get_target_property(
+    linked_libs
+    Qt5::Widgets
+    INTERFACE_LINK_LIBRARIES
+)
+message ("###################")
+message(${linked_libs})
+message(${Qt5Gui_PLUGINS})
+#return()
 
 include(external/re2.cmake)
 include(external/boost.cmake)
@@ -53,13 +79,60 @@ SOURCE_GROUP_BY_FOLDER(sources)
 target_include_directories(LogViewer PUBLIC main/include)
 target_include_directories(LogViewer PUBLIC .)
 
-target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql Qt5::Network logger re2 boost)
+
+#target_link_libraries(qt5helloworld Qt5::Widgets Qt5::Gui Qt5::Svg Qt5::QWindowsIntegrationPlugin -lQt5PlatformSupport ${QT5ALL_LDFLAGS})
+
+target_link_libraries(LogViewer 
+	
+	Qt5::QWindowsIntegrationPlugin
+	Qt5::Widgets 
+	Qt5::Gui 
+	Qt5::Svg 
+	Qt5::Sql
+	Qt5::Network
+	Qt5::OpenGL
+	${QT5ALL_LDFLAGS}
+	${plugin_libs} 
+	#-lQt5PlatformSupport 
+	${QT5SVG_LIBRARIES} 
+	logger re2 boost
+	Winmm.lib
+    Version.lib
+    netapi32.lib
+	Userenv.lib
+	C:/builds/qt5/build-msvc-x86/qtbase/lib/qt5cored.lib
+	C:/builds/qt5/build-msvc-x86/qtbase/lib/Qt5Bootstrapd.lib
+	C:/builds/qt5/build-msvc-x86/qtbase/lib/qtlibpngd.lib
+	C:/builds/qt5/build-msvc-x86/qtbase/lib/qtharfbuzzd.lib
+	C:/builds/qt5/build-msvc-x86/qtbase/lib/qtpcre2d.lib	
+)
+##target_link_libraries(LogViewer 
+##	Qt5::Core
+##	Qt5::Widgets Qt5::Sql Qt5::Network 
+##	Qt5::Gui
+##	logger re2 boost
+##	Qt5::OpenGL
+##	)
+##	
+#Winmm.lib
+#Version.lib
+#netapi32.lib
+#Userenv.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\Qt5EventDispatcherSupportd.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\Qt5PlatformCompositorSupportd.lib
+#C:\builds\qt5\dist\msvc2015\x86\plugins\platforms\qwindowsd.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\qt5cored.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\Qt5Bootstrapd.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\qtlibpngd.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\qtharfbuzzd.lib
+#C:\builds\qt5\build-msvc-x86\qtbase\lib\qtpcre2d.lib
 
 IF(WIN32) # Check if we are on Windows
   if(MSVC) # Check if we are using the Visual Studio compiler
     set_target_properties(LogViewer PROPERTIES 
 		LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS"
-		LINK_FLAGS_DEBUG "/SUBSYSTEM:WINDOWS")
+		LINK_FLAGS_DEBUG "/SUBSYSTEM:WINDOWS"
+		INTERFACE_LINK_LIBRARIES "C:/builds/qt5/build-msvc-x86/qtbase/lib/qtpcred.lib")
   elseif(CMAKE_COMPILER_IS_GNUCXX)
     # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows") # Not tested
   else()
@@ -71,7 +144,7 @@ else()
   message(SEND_ERROR "You are on an unsupported platform! (Not Win32 or Unix)")
 ENDIF()
 
-set(Qt5_RUNTIME_LIBRARY_DIRS c:/qt/5.7/msvc2015/bin)
+#set(Qt5_RUNTIME_LIBRARY_DIRS c:/qt/5.7/msvc2015/bin)
 #add_custom_command(COMMAND set "PATH=${Qt5_RUNTIME_LIBRARY_DIRS};%PATH%"
 #                   COMMAND TableGenerator "${CMAKE_CURRENT_BINARY_DIR}/Table.h"
 #                   DEPENDS TableGenerator
