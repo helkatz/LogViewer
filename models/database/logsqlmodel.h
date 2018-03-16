@@ -1,5 +1,8 @@
-#ifndef LOGSQLMODEL_H
-#define LOGSQLMODEL_H
+#pragma once
+#include "queryconditions.h"
+#include <models/logmodel.h>
+#include <utils/utils.h>
+
 #include <QSqlQueryModel>
 #include <QString>
 #include <QDateTime>
@@ -11,15 +14,8 @@
 #include <QModelIndex>
 #include <QSqlField>
 #include <QObjectList>
-#include "queryconditions.h"
-#include "logmodel.h"
-#include "Utils/utils.h"
 
 class LogView;
-inline QString capitalize(const QString& s)
-{
-	return s[0].toUpper() + s.mid(1).toLower();
-}
 
 class ColumnInformation
 {
@@ -47,9 +43,9 @@ public:
         Conditions(other)
     {
     }
-    PROPERTY(QString, database)
-    PROPERTY(QString, tableName)
-    PROPERTY(QString, connectionName)
+    PROPERTY(SqlConditions, QString, database)
+    PROPERTY(SqlConditions, QString, tableName)
+    PROPERTY(SqlConditions, QString, connectionName)
 };
 
 class LogDatabaseModel : public LogModel
@@ -69,7 +65,7 @@ protected:
 
 	SqlConditions qc() const { return _queryConditions;	}
 
-	CurrentRow& loadData(const QModelIndex &index) const override;
+	CurrentRow& loadData(uint64_t index) const override;
 public:
 	LogDatabaseModel(QObject *parent);
 
@@ -107,5 +103,3 @@ private slots:
 public slots:
     virtual bool queryWithCondition(QString sqlFilter, int limit);
 };
-
-#endif // LOGSQLMODEL_H

@@ -1,22 +1,23 @@
 #include "logview.h"
-#include "logsqlmodel.h"
-#include "logfilemodel.h"
-#include "logstashmodel.h"
+#include <ColumnToolTip.h>
 #include "mainwindow.h"
+#if 1
 #include "forms/finddialog.h"
 #include "signalmapper.h"
 #include "forms/rowlayoutwidget.h"
 #include "forms/fontstylewidget.h"
 #include "forms/contextmenu.h"
 #include "forms/contextmenufilterdialog.h"
+#include <forms/TextColorizerWidget.h>
 
+#include <QSqlField>
 #include <QTWidgets>
 #include <QDebug>
 #include <QSignalMapper>
 #include <QKeySequence>
 #include <QKeyEvent>
 #include <QKeyEventTransition>
-#if 1
+
 class LogModel;
 
 void LogView::keyPressEvent(QKeyEvent *e)
@@ -61,7 +62,7 @@ void LogView::keyPressEvent(QKeyEvent *e)
 
 	if (delta < 0)
 		setFollowMode(false);
-	index = model()->index(max(0, index.row() + delta), 0);
+	index = model()->index(std::max(0, index.row() + delta), 0);
 	setCurrentIndex(index);
 	scrollTo(model()->index(index.row(), 0));
 }
@@ -126,18 +127,16 @@ LogView::LogView(QWidget *parent):
 	connect(this, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
 	connect(this->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(sliderMoved(int)));
 	this->setAutoScroll(false);
-	setFollowMode(false);
 	setSelectionBehavior(SelectRows);
 	setItemDelegate(new LogItemDelegate(this));
 	_lastVerticalScrollPos = verticalScrollBar()->value();
 	horizontalHeader()->setSectionsMovable(true);
+	resizeColumnsToContents();
+	viewport()->installEventFilter(new ColumnToolTip(this));
 }
 
 LogView::~LogView()
 {
-	LogModel *m = qobject_cast<LogModel *>(model());
-	m->removeView(this);
-	qDebug()<<"~LogView()";
 }
 
 
@@ -152,7 +151,7 @@ void LogView::doubleClicked(const QModelIndex& index)
 	  f.setType(QVariant::String);
 	  f.setValue(logModel->data(index).toString());
 
-	  qc.queryString(colName + "='" + logModel->data(index).toString() + "'");
+	  qc.queryString(colName + ":(\"" + logModel->data(index).toString() + "\")");
 	  qc.limit(Settings().general().queryConditions().limit());
 
 	  MainWindow::instance().createLogView(qc, this);
@@ -277,11 +276,8 @@ void LogView::writeSettings(const QString &basePath)
 	s.view().header(horizontalHeader()->saveState());
 	s.view().availableRowColors(_rowStyle.getRowColorizer().availableColors);
 	int idx = 0;
-	foreach(TColoredTextPart ctp, _rowStyle.textPartColorizer.getList()) {
-		s.view().rowStyle().textColorizer(idx).textPart(ctp.textPart);
-		s.view().rowStyle().textColorizer(idx).textPartColor(ctp.color);
-		idx++;
-	}
+
+	getRowStyle().textColorizer.writeSettings(s.view().rowStyle().getPath());
 
 	LogModel *logModel = qobject_cast<LogModel *>(model());
 	if(logModel) {
@@ -292,6 +288,9 @@ void LogView::writeSettings(const QString &basePath)
 
 void LogView::readSettings(const QString &basePath)
 {
+	//@TODO rework on settings thats realy dirty
+	if (_settingsPath.length() == 0)
+		_settingsPath = basePath;
 	Settings s(basePath);
 
 	foreach(QString colStr, s.childGroups("column")) {
@@ -313,20 +312,8 @@ void LogView::readSettings(const QString &basePath)
 	_rowStyle.fontSize = s.view().fontSize();
 	_rowStyle.alternateRowColors = s.view().rowStyle().alternatingRowColors();
 	_rowStyle.getRowColorizer().availableColors = s.view().availableRowColors();
-	//horizontalHeader()->restoreState(s.view().header());
-	foreach(QString group, s.childGroups("view/rowStyle/textColorizer")) {
-		getRowStyle().textPartColorizer.addText(
-			s.view().rowStyle().textColorizer(group).textPart(),
-			s.view().rowStyle().textColorizer(group).textPartColor()
-		);
-	}
 
-	int idx = 0;
-	foreach(TColoredTextPart ctp, _rowStyle.textPartColorizer.getList()) {
-		s.view().rowStyle().textColorizer(idx).textPart(ctp.textPart);
-		s.view().rowStyle().textColorizer(idx).textPartColor(ctp.color);
-		idx++;
-	}
+	getRowStyle().textColorizer.readSettings(s.view().rowStyle().getPath());
 }
 
 void LogView::setFollowMode(bool enabled)
@@ -334,6 +321,7 @@ void LogView::setFollowMode(bool enabled)
 	_followMode = enabled;
 	if(enabled)
 		scrollToBottom();
+	model()->followTail(enabled);
 }
 #if 0
 void LogView::setAlternateRowColors(bool enabled)
@@ -485,19 +473,20 @@ void LogView::contextMenu(const QPoint& point)
 		setAlternatingRowColors(rowStyle.alternateRowColors);
 		setFont(rowStyle.font);
 		setFontSize(rowStyle.fontSize);
+		writeSettings(_settingsPath);
 	});
 
 	widgetAction = new QWidgetAction(&menu);
 	widgetAction->setDefaultWidget(rowLayoutWidget);
 	menu.addMenu(tr("Style"))->addAction(widgetAction);
 
-
+	/*
 	widgetAction = new QWidgetAction(&menu);
-	QColorDialog *d = new QColorDialog(&menu);
+	auto d = new TextColorizerWidget(&menu);
 	widgetAction->setDefaultWidget(d);
-	menu.addMenu(tr("Colors"))->addAction(widgetAction);
+	menu.addMenu(tr("TextHighlighter"))->addAction(widgetAction);
 	//action = new QAction(tr("Colors"), &menu);
-	
+	*/
 
 	action = new QAction(tr("Alternate row colors"), &menu);
 	action->setCheckable(true);
@@ -581,7 +570,7 @@ void LogView::setTextPartColor(const QString &text, int color)
 #endif
 void LogView::setFindTextColor(const QStringList& columns, const QString& text)
 {
-	_rowStyle.textPartColorizer.setFindText(text, QColor(155, 144, 22));
+	_rowStyle.textColorizer.setFindText(text, QColor(155, 144, 22));
 	emit model()->layoutChanged();
 	//emit updateLayout;
 	qDebug() << "setFindTextColor:" << text;
@@ -597,148 +586,4 @@ bool LogView::queryWithCondition(QString filter, int limit)
 	wnd->refreshTitle();
 	return true;
 }
-
-LogWindow::LogWindow()
-{
-	//_logModel = new LogModel(NULL);
-	setOrientation(Qt::Vertical);
-	_logView = new LogView(this);
-	_detailView = new DetailView(this);
-	//setModel(_logModel);
-	_logView->setVerticalScrollMode(QAbstractItemView::ScrollPerItem);
-	_logView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-}
-
-LogWindow *LogWindow::create(Conditions qc, bool useTemplate)
-{
-	LogWindow *window = new LogWindow();
-	LogModel *model = nullptr;
-	try {
-		if (qc.modelClass().length()) {
-			if (qc.modelClass() == "LogSqlModel")
-				model = new LogDatabaseModel(NULL);
-			else if (qc.modelClass() == "LogFileModel")
-				model = new LogFileModel(NULL);
-			else if (qc.modelClass() == "LogStashModel")
-				model = new LogStashModel(NULL);
-			else
-				throw std::exception("invalid modelClass");
-			model->setQueryConditions(qc);
-		}
-		else
-			throw std::exception("invalid modelClass");
-		window->setModel(model);
-		if (window->query(model->getQueryConditions()) == false) {
-			delete window;
-			return nullptr;
-		}
-	}
-	catch (std::exception&) {
-		if (window)
-			delete window;
-		if (model)
-			delete model;
-		throw;
-	}
-
-	if(useTemplate) {
-		Settings s;
-		foreach(const QString& group, s.childGroups("windowTemplates")) {
-			QString filter = s.windowTemplates(group).viewNameFilter();
-			QRegExp regex(filter);
-			if(model->getTitle().contains(regex))
-				window->readSettings(s.windowTemplates(group).logView().getPath());
-		}
-	}
-	
-	window->refreshTitle();
-	return window;
-}
-
-LogWindow *LogWindow::create(Conditions qc, LogView *templateView)
-{
-	auto window = create(qc, false);
-	if (!window)
-		return nullptr;
-
-	// now use the present settings technoligy to move needed windows settings
-	Settings s;
-	QString tmpName = "tmporary_template";
-	templateView->writeSettings(s.windowTemplates(tmpName).logView().getPath());
-	window->readSettings(s.windowTemplates(tmpName).logView().getPath());
-	s.windowTemplates(tmpName).remove();
-	return window;
-}
-
-LogWindow *LogWindow::create(const QString& settingsPath)
-{
-	Conditions qc;
-	qc.readSettings(settingsPath);
-	LogWindow *window = create(qc);
-	window->readSettings(settingsPath);
-	return window;
-}
-
-bool LogWindow::query(const Conditions& qc)
-{
-	_logModel->query(qc);
-	refreshTitle();
-	return true;
-}
-
-void LogWindow::refreshTitle()
-{
-	QString title = _logModel->getTitle();
-	setWindowTitle(title);
-	if(this->isActiveWindow()) {
-		MainWindow::instance().refreshWindowTitle();
-	}
-	_logView->updateHeader();
-}
-
-void LogWindow::setModel(LogModel *model)
-{
-	//QAbstractItemModel *itemModel = dynamic_cast<QAbstractItemModel *>(model);
-	if(model == NULL)
-		return;
-	model->addView(_logView);
-	_logModel = model;
-	_logView->setModel(model);
-	_detailView->setModel(model);
-	connect(model, SIGNAL(layoutChanged()), _logView, SLOT(dataChanged()));
-	connect(_logView, SIGNAL(scrolltable(QModelIndex)), _logView, SLOT(doScroll(QModelIndex index)));
-	connect(model, SIGNAL(setModifiedPos(quint32)), _logView, SLOT(setModifiedPos(quint32)));
-	connect(_logView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),
-			_detailView, SLOT(currentRowChanged(QModelIndex,QModelIndex)));
-	//setTabKeyNavigation(true);
-}
-
-void LogWindow::writeSettings(const QString &basePath)
-{
-	Settings s(basePath);
-	_logModel->writeSettings(basePath);
-	_logView->writeSettings(basePath);
-	_detailView->writeSettings(basePath);
-	s.view().splitter(saveState());
-}
-
-void LogWindow::readSettings(const QString &basePath)
-{
-	Settings s(basePath);
-	_logModel->readSettings(basePath);
-	_logView->readSettings(basePath);
-	_detailView->readSettings(basePath);
-	restoreState(s.view().splitter());
-}
-
-void LogWindow::setFollowMode(bool enabled)
-{
-	_logView->setFollowMode(enabled);
-}
-
-void LogWindow::showFindWidget(bool show)
-{
-	_logView->showFindWidget(show);
-}
-
 #endif

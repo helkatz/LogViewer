@@ -12,6 +12,19 @@
 #include <qfilesystemwatcher.h>
 #include "Utils/utils.h"
 #include <common/File.h>
+class OnChangeHandler : public QObject
+{
+	Q_OBJECT;
+public:
+	using OnObjectChanged = std::function<void(const QString&, int)>;
+	OnObjectChanged _onObjectChanged;
+
+private slots:
+	void observedObjectChanged(const QString &id, int maxId)
+	{
+		_onObjectChanged(id, maxId);
+	}
+};
 class ObserverBase : public QObject
 {
 	Q_OBJECT;
@@ -19,10 +32,16 @@ class ObserverBase : public QObject
 	typedef QSharedPointer<ObserverBase> Ptr;
 
 	static QMap<QString, ObserverBase::Ptr> _observers;
+	
+	
 	QList<const QObject *> _owners;
 
 protected:
-	virtual void processChanges() = 0;
+	//using OnObjectChanged = std::function<void(const QString&, int)>;
+	//OnObjectChanged _onObjectChanged;
+	OnChangeHandler _onChangeHandler;
+	virtual bool processChanges() = 0;
+
 	virtual QString getId() const = 0;
 
 	static bool has(const QString& id)
@@ -84,7 +103,7 @@ public:
 
 	static void checkChanges()
 	{
-		qDebug() << "checkChanges";
+		//qDebug() << "checkChanges";
 		foreach(ObserverBase::Ptr od, _observers)
 		{
 			od->processChanges();
@@ -104,7 +123,9 @@ protected:
 	QString _fileName;
 	QFileSystemWatcher _watcher;
 	bool watched;
-	void processChanges();
+
+	bool processChanges();
+
 	QString getId() const
 	{
 		return createId(_fileName);
@@ -117,11 +138,10 @@ public:
 		return "file-id:" + fileName;
 	}
 
-	static bool createObserver(const QObject *owner, const QString& fileName)
+	static bool createObserver(const QObject *owner, const QString& fileName
+		, OnChangeHandler::OnObjectChanged onChanged = nullptr)
 	{
-		QString mapName = createId(fileName);
-		if (append(mapName, owner)) 
-			return true;
+
 
 		QSharedPointer<ObserverFile> od = QSharedPointer<ObserverFile>(new ObserverFile);
 		od->_file.open(fileName.toStdString());
@@ -129,12 +149,21 @@ public:
 		od->_fileName = fileName;
 		//od->_owners.append(owner);
 		od->watched = od->_watcher.addPath(fileName + "x");
+		od->_onChangeHandler._onObjectChanged = onChanged;
+
+		const QObject *own = owner;
+		if (onChanged)
+			own = &od->_onChangeHandler;
+		QString mapName = createId(fileName);
+		if (append(mapName, own))
+			return true;
 
 		QObject::connect(&od->_watcher, SIGNAL(fileChanged(const QString&)), od.data(), SLOT(handleFileChanged(const QString&)));
 		//QObject::connect(od.data(), SIGNAL(observedObjectChanged(QString, int)), owner, SLOT(observedObjectChanged(QString, int)));
 		//_observers[mapName] = od;
 		append(mapName, od);
-		append(mapName, owner);
+		append(mapName, own);
+		
 		return true;
 	}
 private slots:
@@ -150,7 +179,8 @@ protected:
 	int _fromPk;
 	QString _pk;
 	QSqlDatabase _db;
-	void processChanges();
+	
+	bool processChanges();
 	QString getId() const
 	{
 		return createId(_connectionName, _table);

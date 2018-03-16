@@ -4,20 +4,23 @@
 #include <QAbstractTableModel>
 #include <QSqlTableModel>
 #include <QSqlRecord>
+#include <QThread>
+#include <QSharedPointer>
+#include <QTimer>
 #include <qdatetime.h>
 #include <unordered_map>
+#include <chrono>
 typedef std::unordered_map<uint32_t, QSqlRecord> DataCache;
 
 class Conditions: public Properties
 {
-
 public:
-	PROPERTY(QString, connection)
-    PROPERTY(QString, modelClass)
-    PROPERTY(QString, queryString)
-    PROPERTY(QDateTime, fromTime, QDateTime::fromTime_t(0))
-    PROPERTY(QDateTime, toTime, QDateTime::fromTime_t(std::numeric_limits<time_t>::max()))
-    PROPERTY(int, limit)
+	PROPERTY(Conditions, QString, connection)
+    PROPERTY(Conditions, QString, modelClass)
+    PROPERTY(Conditions, QString, queryString)
+    PROPERTY(Conditions, uint64_t, fromTime, 0)
+    PROPERTY(Conditions, uint64_t, toTime, std::numeric_limits<uint32_t>::max() * 1000ull)
+    PROPERTY(Conditions, uint32_t, limit)
 protected:
 	
 public:
@@ -26,7 +29,63 @@ public:
     virtual void readSettings(const QString &basePath);
 };
 
+class Observer : public QThread
+{
+	using EventHandler = std::function<void()>;
+	EventHandler eventHandler_;
+	QTimer checkChangesTimer_;
+public:
+	void install(std::chrono::milliseconds timer, EventHandler handler)
+	{
+		connect(&checkChangesTimer_, &QTimer::timeout, this, handler);
+		checkChangesTimer_.setInterval(timer.count());
+	}
+	void run()
+	{
+		checkChangesTimer_.start();
+	}
+	void pause()
+	{
+		checkChangesTimer_.stop();
+	}
+};
+
 class LogView;
+class LogModel;
+struct CreatorBase
+{
+	virtual QSharedPointer<LogModel> create() = 0;
+};
+template<typename T>
+struct Creator: CreatorBase
+{
+	QSharedPointer<LogModel> create() override
+	{
+		return QSharedPointer<LogModel>{new T{ nullptr }};
+	}
+};
+class LogModelFactory
+{
+	QMap<QString, QSharedPointer<CreatorBase>> registered_;
+	static LogModelFactory* instance_;
+public:
+	template<typename T>
+	static QSharedPointer<CreatorBase> Register(const QString& name)
+	{
+		if (instance_ == nullptr)
+			instance_ = new LogModelFactory;
+		QSharedPointer<CreatorBase> creator{ new Creator<T>() };
+		instance_->registered_[name] = creator;
+		return creator;
+	}
+	static QSharedPointer<LogModel> Create(const QString& name)
+	{
+		auto it = instance_->registered_.find(name);
+		if (it == instance_->registered_.end())
+			return nullptr;
+		return it.value()->create();
+	}
+};
 
 class LogModel: public QSqlQueryModel
 {
@@ -50,6 +109,7 @@ protected:
 	};
 	mutable CurrentRow _currentRow;
 
+	Observer observer_;
 	QList<LogView *> _views;
     mutable DataCache _dataCache;
     int _rows;
@@ -60,7 +120,7 @@ protected:
     LogModel(QObject *parent);
 
     //static LogModel *createClass(const QString& className);
-	virtual CurrentRow& loadData(const QModelIndex &index) const = 0;
+	virtual CurrentRow& loadData(uint64_t index) const = 0;
 
 public:
     void addView(LogView *view);
@@ -95,10 +155,13 @@ public:
 
 	virtual void setQueryConditions(const Conditions& qc);
 
-
 	virtual quint64 getFrontRow() const;
 
 	virtual quint64 getBackRow() const;
+
+	virtual int fetchMoreBackward(quint32 row, quint32 items);
+
+	virtual int fetchMoreForward(quint32 row, quint32 items);
 
 	virtual int fetchMoreFrom(quint32 row, quint32 items, bool back);
 
@@ -110,7 +173,10 @@ public:
 
 	virtual int fetchMoreFromEnd(quint32 items);
 
+	virtual void followTail(bool enabled);
+
 public slots:
 	virtual bool queryWithCondition(QString sqlFilter, int limit) = 0;
+	virtual void processObserved() {};
 };
 

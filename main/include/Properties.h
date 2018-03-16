@@ -1,9 +1,9 @@
 #pragma once
 #include <qmap.h>
 #include <qvariant.h>
-class Properties
-{
 
+class Properties
+{	
 protected:
     QMap<QString, QVariant> _hive;
     template<typename T>
@@ -40,8 +40,8 @@ public:
     }
 };
 
-#define PROPERTY(TYPE, NAME, ...) \
-    void NAME(const TYPE& value){ set<TYPE>(#NAME, value); } \
+#define PROPERTY(CLASS, TYPE, NAME, ...) \
+    CLASS& NAME(const TYPE& value){ set<TYPE>(#NAME, value); return *this; } \
     TYPE NAME() const { return get<TYPE>(#NAME, __VA_ARGS__); }
 
-
+	

@@ -244,6 +244,23 @@ public:
 	}
 };
 
+struct Columnizer
+{
+	using List = QVector<Columnizer>;
+	std::string name;
+	std::string pattern;
+	std::string startPattern;
+	std::string searchPattern;
+	QList<QString> columnNames;
+
+	static Columnizer::List _columnizers;
+
+	static void loadColumnizers();
+	static Columnizer::List findColumnizer(common::File& file);
+	static boost::optional<Columnizer> find(const QString& name);
+
+};
+
 class Parser : public QThread
 {
 	Q_OBJECT;
@@ -268,21 +285,6 @@ class Parser : public QThread
 	Queue _entriesCache;
 	Queue _backEntriesCache;
 	Queue _frontEntriesCache;
-	struct Columnizer
-	{
-		using List = QVector<Columnizer>;
-		std::string name;
-		std::string pattern;
-		std::string startPattern;
-		std::string searchPattern;
-		QList<QString> columnNames;
-
-		static Columnizer::List _columnizers;
-
-		static void loadColumnizers();
-		static boost::optional<Columnizer> findColumnizer(common::File& file);
-
-	};
 	
 	boost::optional<Columnizer> _columnizer;
 
@@ -362,7 +364,9 @@ public:
 
 	int fetchToBegin(quint32 items);
 
-	int fetchMoreFrom(quint32 row, quint32 items, bool back);
+	int fetchMoreBackward(quint32 row, quint32 items);
+
+	int fetchMoreForward(quint32 row, quint32 items);
 
 	int fetchMoreFromBegin(quint32 items);
 

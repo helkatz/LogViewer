@@ -2,8 +2,6 @@
 
 #include "settings.h"
 #include "logview.h"
-#include "logsqlmodel.h"
-#include "logfilemodel.h"
 
 #include "logupdater.h"
 #include "forms/aboutdialog.h"
@@ -35,6 +33,54 @@ MdiArea::MdiArea(QWidget *parent):
 	setActivationOrder(QMdiArea::WindowOrder::ActivationHistoryOrder);
 }
 
+#include <qdockwidget.h>
+#include <qlistwidget.h>
+void MainWindow::createDockWindows()
+{
+	QDockWidget *dock = new QDockWidget(tr("Customers"), this);
+	//dock->setAllowedAreas(Qt::TopDockWidgetArea | Qt::RightDockWidgetArea);
+	auto customerList = new QListWidget(dock);
+	customerList->addItems(QStringList()
+		<< "John Doe, Harmony Enterprises, 12 Lakeside, Ambleton"
+		<< "Jane Doe, Memorabilia, 23 Watersedge, Beaton"
+		<< "Tammy Shea, Tiblanka, 38 Sea Views, Carlton"
+		<< "Tim Sheen, Caraba Gifts, 48 Ocean Way, Deal"
+		<< "Sol Harvey, Chicos Coffee, 53 New Springs, Eccleston"
+		<< "Sally Hobart, Tiroli Tea, 67 Long River, Fedula");
+	dock->setWidget(customerList);
+	addDockWidget(Qt::RightDockWidgetArea, dock);
+	//menuBar().addAction(dock->toggleViewAction());
+	dock->setTitleBarWidget(new QWidget(this));
+	dock = new QDockWidget(tr("Paragraphs"), this);
+	auto paragraphsList = new QListWidget(dock);
+	paragraphsList->addItems(QStringList()
+		<< "Thank you for your payment which we have received today."
+		<< "Your order has been dispatched and should be with you "
+		"within 28 days."
+		<< "We have dispatched those items that were in stock. The "
+		"rest of your order will be dispatched once all the "
+		"remaining items have arrived at our warehouse. No "
+		"additional shipping charges will be made."
+		<< "You made a small overpayment (less than $5) which we "
+		"will keep on account for you, or return at your request."
+		<< "You made a small underpayment (less than $1), but we have "
+		"sent your order anyway. We'll add this underpayment to "
+		"your next bill."
+		<< "Unfortunately you did not send enough money. Please remit "
+		"an additional $. Your order will be dispatched as soon as "
+		"the complete amount has been received."
+		<< "You made an overpayment (more than $5). Do you wish to "
+		"buy more items, or should we return the excess to you?");
+	dock->setWidget(paragraphsList);
+	addDockWidget(Qt::RightDockWidgetArea, dock);
+	//viewMenu->addAction(dock->toggleViewAction());
+	setTabShape(QTabWidget::TabShape::Rounded);
+	setTabPosition(Qt::DockWidgetArea::AllDockWidgetAreas, QTabWidget::TabPosition::North);
+	connect(customerList, SIGNAL(currentTextChanged(QString)),
+		this, SLOT(insertCustomer(QString)));
+	connect(paragraphsList, SIGNAL(currentTextChanged(QString)),
+		this, SLOT(addParagraph(QString)));
+}
 bool MdiArea::setTabbedView(bool enable)
 {
 	QMdiArea::ViewMode mode = enable ? QMdiArea::TabbedView : QMdiArea::SubWindowView;
@@ -81,9 +127,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QLocale::setDefault(curLocale);
     this->setLocale(curLocale);
 	QTabBar *m_pMdiAreaTabBar = NULL;
-
 	
 	setTabbedView(false);
+	createDockWindows();
 }
 struct WindowGeometry
 {
@@ -140,7 +186,11 @@ void MainWindow::readSettings()
 	//QDesktopWidget::screenNumber(window()->pos())
 	auto dt = QApplication::desktop();
 	
-	if (dt->width() >= s.mainWindow().pos().x() && dt->height() >= s.mainWindow().pos().y())
+	auto w = dt->width();
+	auto windowRight = s.mainWindow().pos().x() + s.mainWindow().size().width();
+	auto h = dt->height();
+	auto windowBottom = s.mainWindow().pos().y() + s.mainWindow().size().height();
+	if (dt->width() >= windowRight && dt->height() >= windowBottom)
 		move(s.mainWindow().pos());
 	else
 		move(20, 20);
@@ -343,13 +393,15 @@ void MainWindow::on_actionDatabase_Log_triggered()
     }
 }
 
+//@TODO this should be encapsulated in logfile stuff like plugin or so
+#include <models/file/logfilemodel.h>
 void MainWindow::on_actionFile_Log_triggered()
 {
     QFileDialog d;
     Settings s;
     QStringList fileNames = d.getOpenFileNames();
     foreach(QString fileName, fileNames) {
-        FileConditions qc;
+		FileConditions qc;
         qc.fileName(fileName);
         qc.modelClass("LogFileModel");
         createLogView(qc, true);
@@ -358,15 +410,6 @@ void MainWindow::on_actionFile_Log_triggered()
 
 void MainWindow::on_actionLogstash_triggered()
 {
-	QFileDialog d;
-	Settings s;
-	QStringList fileNames = d.getOpenFileNames();
-	foreach(QString fileName, fileNames) {
-		FileConditions qc;
-		qc.fileName(fileName);
-		qc.modelClass("LogFileModel");
-		createLogView(qc, true);
-	}
 }
 
 void MainWindow::on_actionTabbed_toggled(bool enable)

@@ -28,7 +28,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 #file(GLOB_RECURSE sources forms/*)
 #file(GLOB_RECURSE sources languages/*)
-file(GLOB_RECURSE sources main/* languages/* forms/* utils/*)
+file(GLOB_RECURSE sources main/* languages/* forms/* utils/* assets/* models/*)
 
 #set(CMAKE_PREFIX_PATH C:/qt/5.9/5.9.1/msvc2015)
 #set(CMAKE_PREFIX_PATH C:/qt5/5.9.3/msvc2015)
@@ -44,6 +44,7 @@ find_package(Qt5Network)
 
 include(/data/binaries/external/re2.cmake)
 include(/data/binaries/external/boost.cmake)
+#include(/data/binaries/external/poco.cmake)
 add_subdirectory(../logger ${CMAKE_BINARY_DIR}/logger)
 
 add_executable(LogViewer ${sources})
@@ -53,7 +54,7 @@ SOURCE_GROUP_BY_FOLDER(sources)
 target_include_directories(LogViewer PUBLIC main/include)
 target_include_directories(LogViewer PUBLIC .)
 
-target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql Qt5::Network logger re2 boost)
+target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql Qt5::Network logger re2 boost PocoFoundation PocoNet)
 
 IF(WIN32) # Check if we are on Windows
   if(MSVC) # Check if we are using the Visual Studio compiler

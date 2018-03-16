@@ -1,6 +1,6 @@
 #pragma once
-#include "logsqlmodel.h"
-#include "logfile_parser.h"
+#include <models/logmodel.h>
+#include <models/file/logfile_parser.h>
 //#include "Utils/utils.h"
 
 //#include <QFile>
@@ -22,7 +22,7 @@ public:
         Conditions(other)
     {
     }
-    PROPERTY(QString, fileName)
+    PROPERTY(FileConditions, QString, fileName)
 };
 
 class LogFileModel : public LogModel
@@ -37,26 +37,28 @@ protected:
 
     //QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
 
-	CurrentRow& loadData(const QModelIndex &index) const;
+	CurrentRow& loadData(uint64_t index) const override;
 
-	virtual quint64 getFrontRow() const;
+	quint64 getFrontRow() const override;
 
-	virtual quint64 getBackRow() const;
+	quint64 getBackRow() const override;
 
-	virtual int fetchToEnd();
+	int fetchToEnd() override;
 
-	virtual int fetchToBegin();
+	int fetchToBegin() override;
 
-	virtual int fetchMoreFrom(quint32 row, quint32 items, bool back);
+	int fetchMoreBackward(quint32 row, quint32 items) override;
 
-	virtual int fetchMoreFromBegin(quint32 items);
+	int fetchMoreForward(quint32 row, quint32 items) override;
 
-	virtual int fetchMoreFromEnd(quint32 items);
+	int fetchMoreFromBegin(quint32 items) override;
+
+	int fetchMoreFromEnd(quint32 items) override;
 
 public:
     LogFileModel(QObject *parent);
 
-	virtual QString getTitle() const override;
+	QString getTitle() const override;
 
 	void writeSettings(const QString& basePath) override;
 
@@ -64,7 +66,7 @@ public:
 
 	bool query(const Conditions& QueryOptions) override;
 
-	virtual QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns,
+	QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns,
 		const QString& search, bool regex, bool down) const override;
 
     bool queryWithCondition(QString sqlFilter, int limit);

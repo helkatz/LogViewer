@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-#include "queryconditions.h"
-#include "logmodel.h"
+#include <models/logmodel.h>
+
 #include <QMainWindow>
 #include <QMdiArea>
 
@@ -33,6 +33,7 @@ public:
     static MainWindow& instance();
     const QMdiArea& getArea() const { return *mdiArea; }
     void refreshWindowTitle();
+	void createDockWindows();
     ~MainWindow();
 
 private slots:

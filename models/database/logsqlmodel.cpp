@@ -1,6 +1,6 @@
 #include "logsqlmodel.h"
-#include "logupdater.h"
-#include "Utils/utils.h"
+#include <logupdater.h>
+#include <Utils/utils.h>
 
 #include <strstream>
 #include <QMessageBox>
@@ -44,10 +44,10 @@ void LogDatabaseModel::observedObjectChanged(const QString &id, int maxId)
 
 }
 
-LogModel::CurrentRow& LogDatabaseModel::loadData(const QModelIndex &index) const
+LogModel::CurrentRow& LogDatabaseModel::loadData(uint64_t index) const
 {
-    int fromPos = index.row() - 100 > 0 ? index.row() - 100 : 0;
-    int toPos = index.row() + 100;
+    int fromPos = index - 100 > 0 ? index - 100 : 0;
+    int toPos = index + 100;
     QString sql = QString(_query).arg(fromPos).arg(toPos);
     _sqlQuery->exec(sql);
 	_currentRow.reset();
@@ -59,7 +59,7 @@ LogModel::CurrentRow& LogDatabaseModel::loadData(const QModelIndex &index) const
         do {
             QSqlRecord& r = _sqlQuery->record();
 			auto curRow = r.value(0).toInt() - 1;
-			if (curRow == index.row()) {
+			if (curRow == index) {
 				_currentRow.set(curRow, r);
 			}
             _dataCache[curRow] = r;

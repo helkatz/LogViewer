@@ -1,10 +1,7 @@
 #include "logfile_parser.h"
-#include <string>
+#include <Utils/utils.h>
 
-#include <re2/prog.h>
-#include <re2/regexp.h>
-
-#include "Utils/utils.h"
+#include <forms/ColumnizerChooser.h>
 
 #include <QFile>
 #include <QTextStream>
@@ -20,13 +17,13 @@
 #include <algorithm>
 #include <type_traits>
 #include <iterator>
-
+#include <string>
 
 QMap<QString, Parser *> Parser::_parserMap;
-Parser::Columnizer::List Parser::Columnizer::_columnizers;
+Columnizer::List Columnizer::_columnizers;
 
 
-void Parser::Columnizer::loadColumnizers()
+void Columnizer::loadColumnizers()
 {
 	Settings s;
 	foreach(const QString& name, s.childGroups("columnizer"))
@@ -62,19 +59,60 @@ void Parser::Columnizer::loadColumnizers()
 	_columnizers.push_back(columnizer);
 }
 
-boost::optional<Parser::Columnizer> Parser::Columnizer::findColumnizer(common::File& file)
+Columnizer::List Columnizer::findColumnizer(common::File& file)
 {
+	Columnizer::List ret;
 	int tryLines = 20;
 	QString line = file.readLine();
-	Columnizer foundColumnizer;
 	foreach(const Columnizer& columnizer, _columnizers) {
 		QRegularExpression re(columnizer.pattern.c_str());
 		QRegularExpressionMatch match = re.match(line);
 		if (match.hasMatch() == false)
 			continue;
-		return columnizer;
+		ret.push_back(columnizer);
 	}
-	return boost::none;
+	return ret;
+}
+namespace traits
+{
+	template <typename>
+	struct is_map : std::false_type
+	{ };
+
+	template <class _Kty, class _Ty, class _Pr, class _Alloc>
+	struct is_map<std::map<_Kty, _Ty, _Pr, _Alloc>> : std::true_type
+	{ };
+
+	template <typename>
+	struct is_vector : std::false_type
+	{ };
+
+	template <class _Ty, class _Alloc>
+	struct is_vector<std::vector<_Ty, _Alloc>> : std::true_type
+	{ };
+}
+
+
+struct x_map
+{
+	template<typename T>
+	struct What
+	{
+		T& in;
+	};
+	template <class _Kty, class _Ty, class _Pr, class _Alloc, typename T>
+	static What<_Ty>& find(std::map<_Kty, _Ty, _Pr, _Alloc>& m, const T& v)
+	{
+		return What<_Ty>{};
+	}
+};
+boost::optional<Columnizer> Columnizer::find(const QString & name)
+{
+	for (auto& columnizer : _columnizers) {
+		if (columnizer.name == name.toStdString())
+			return columnizer;
+	}
+	return{};
 }
 
 Parser *Parser::findParser(const QString& fileName)
@@ -90,8 +128,8 @@ Parser::Parser(QObject *parent, QString fileName) :
 	_linesCount(0),
 	_entriesCount(0),
 	_entriesCache(100),
-	_frontEntriesCache(1),
-	_backEntriesCache(1)
+	_frontEntriesCache(100),
+	_backEntriesCache(100)
 
 {
 	Columnizer::loadColumnizers();
@@ -106,6 +144,8 @@ Parser::~Parser()
 
 void Parser::refresh()
 {
+	if (_lastFileSize == _file.size())
+		return;
 	_file.reset();	
 	if (_backEntriesCache.size() == 0) {
 		fillBackEntriesCache();
@@ -160,9 +200,12 @@ bool Parser::open(const QString& fileName)
 {
 	if (_file.open(fileName.toStdString().c_str()) == false)
 		return false;
+	
 	_lastFileSize = _file.size();
 
 	findColumnizer();
+
+	importMessages();
 
 	calcRowCount();
 	
@@ -242,14 +285,23 @@ bool Parser::start(bool runInBackground)
 
 bool Parser::findColumnizer()
 {
-	int tryLines = 20;
-
-	while (_file.hasNext() && --tryLines > 0) {
-	}
-	_columnizer = Columnizer::findColumnizer(_file);
-	if (!_columnizer)
+	auto columnizers = Columnizer::findColumnizer(_file);
+	if (columnizers.length() == 0)
 		return false;
 
+	if (columnizers.length() > 1) {
+		ColumnizerChooser d;
+		QStringList list;
+		for (auto& c : columnizers)
+			list.push_back(c.name.c_str());
+		d.addList(list);
+		if (d.exec() == QDialog::Accepted) {
+			_columnizer = Columnizer::find(d.columnizer());
+		}
+	} else
+		_columnizer = columnizers.at(0);
+	if (!_columnizer)
+		return false;
 	_qre.setPattern(_columnizer->pattern.c_str());
 	_qre.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
 	RE2::Options re_options;
@@ -537,63 +589,67 @@ int Parser::fetchToBegin(quint32 items)
 	return itemsFetched;
 }
 
-int Parser::fetchMoreFrom(quint32 row, quint32 items, bool back)
+int Parser::fetchMoreBackward(quint32 row, quint32 items)
 {
 	quint32 itemsFetched = 0;
-	if (back == false) {		
-		LogEntry curEntry = _entriesCache.front();
-		if (_entriesCache.findInQueue(row, curEntry)) {
-			quint32 distance = row - _entriesCache.frontRow();
-			items = distance > items ? 0 : items - distance;
-		}
-		else {
+	//@TODO assign jst to init with right col size LogEntry should be changed so that it does not need that
+	LogEntry curEntry = _entriesCache.back();
 
-		}
-		// when cur front entry actually far from  frontqueue then increase front/back row
-		// and then read entries back to fill up
-		_entriesCache.setFrontRow(items);
-		while (_entriesCache.front().filePos > 0 
-			   &&_frontEntriesCache.back().filePos < curEntry.filePos 
-			   && itemsFetched < items) 
-		{
-			readLogEntry(_entriesCache.frontRow() - 1, curEntry);
-			itemsFetched++;
-		}
-		_entriesCache.setFrontRow(0);
-		//row += itemsFetched;
-		return itemsFetched;
+	if (_entriesCache.findInQueue(row, curEntry)) {
+		quint32 distance = _entriesCache.backRow() - row;
+		items = distance > items ? 0 : items - distance;
 	}
 	else {
-		LogEntry curEntry = _entriesCache.back();
-		if (_entriesCache.findInQueue(row, curEntry)) {
-			quint32 distance = _entriesCache.backRow() - row;
-			items = distance > items ? 0 : items - distance;
-		}
-		else {
-			// when cur row not reached to the end gap then do nothing
-			if (row < _backEntriesCache.frontRow())
-				return 0;
-			_entriesCache.clear();
-			for (auto e: _backEntriesCache)
-				_entriesCache.push_back(e);
-			_entriesCache.setFrontRow(_backEntriesCache.frontRow());
-		}
-		
-		// when cur front entry actually far from  frontqueue then increase front/back row
-		// and then read entries back to fill up
-		_entriesCache.setBackRow(_entriesCache.backRow() - items);
-		while (_entriesCache.back().filePos > 0
-			   && _backEntriesCache.front().filePos > curEntry.filePos
-			   && itemsFetched < items) {
-			readLogEntry(_entriesCache.backRow() + 1, curEntry);
-			itemsFetched++;
-		}
-		_entriesCache.setBackRow(getRowCount());
-		//row += itemsFetched;
-		//getRowFromFilePos()
-		return itemsFetched;
+		// when cur row not reached to the end gap then do nothing
+		if (row < _backEntriesCache.frontRow())
+			return 0;
+		_entriesCache.clear();
+		for (auto e: _backEntriesCache)
+			_entriesCache.push_back(e);
+		_entriesCache.setFrontRow(_backEntriesCache.frontRow());
 	}
+		
+	// when cur front entry actually far from  frontqueue then increase front/back row
+	// and then read entries back to fill up
+	_entriesCache.setBackRow(_entriesCache.backRow() - items);
+	while (_entriesCache.back().filePos > 0
+			&& _backEntriesCache.front().filePos > curEntry.filePos
+			&& itemsFetched < items) {
+		readLogEntry(_entriesCache.backRow() + 1, curEntry);
+		itemsFetched++;
+	}
+	_entriesCache.setBackRow(getRowCount());
+	//row += itemsFetched;
+	//getRowFromFilePos()
+	return itemsFetched;
 }
+
+int Parser::fetchMoreForward(quint32 row, quint32 items)
+{
+	quint32 itemsFetched = 0;
+	LogEntry curEntry = _entriesCache.front();
+	if (_entriesCache.findInQueue(row, curEntry)) {
+		quint32 distance = row - _entriesCache.frontRow();
+		items = distance > items ? 0 : items - distance;
+	}
+	else {
+
+	}
+	// when cur front entry actually far from  frontqueue then increase front/back row
+	// and then read entries back to fill up
+	_entriesCache.setFrontRow(items);
+	while (_entriesCache.front().filePos > 0
+		&& _frontEntriesCache.back().filePos < curEntry.filePos
+		&& itemsFetched < items)
+	{
+		readLogEntry(_entriesCache.frontRow() - 1, curEntry);
+		itemsFetched++;
+	}
+	_entriesCache.setFrontRow(0);
+	//row += itemsFetched;
+	return itemsFetched;
+}
+
 
 int Parser::fetchMoreFromBegin(quint32 items)
 {
@@ -733,7 +789,14 @@ bool Parser::importMessages()
 	common::File file;
 	file.open(_fileName.toStdString());
 
-	while (!file.hasNext()) {
+	LogEntry entry(columnNames().size());
+
+	while (readLogEntry(file, entry)) {
+		_entryHeads.push_back(entry.filePos);
+		_linesCount++;
+	}
+
+	while (false && file.hasNext()) {
 		quint64 filePos = file.posHead();
 		char *line = file.readLine();
 		_linesCount++;
@@ -771,3 +834,5 @@ void parser::testingMain()
 	LogEntry entry(0);
 	parser->readLogEntry(0, entry, "apache", true);
 }
+
+

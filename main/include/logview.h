@@ -1,9 +1,9 @@
 #ifndef LOGVIEW_H
 #define LOGVIEW_H
+#include <models/logmodel.h>
+#include <forms/findwidget.h>
+#include <TextColorizer.h>
 
-#include "queryconditions.h"
-#include "forms/findwidget.h"
-#include "logsqlmodel.h"
 #include <qwindow>
 #include <QString>
 #include <QDateTime>
@@ -17,6 +17,7 @@
 
 
 // #define USE_FROZENCOLUMNS
+class LogModel;
 
 class LogItemDelegate : public QStyledItemDelegate
 {
@@ -44,30 +45,7 @@ struct TColoredRowBackground
 	TColoredRowBackground() { column = 0; colorizeByChars = 0; }
 };
 
-struct TColoredTextPart
-{
-    QString textPart;
-    QColor color;
-};
-typedef QMap<QString, TColoredTextPart>  TColoredTextParts;
-class TextPartColorizer
-{
 
-    TColoredTextParts _coloredTextParts;
-    TColoredTextPart _findCTP;
-    //QMap<int, > _coloredTextParts;
-
-    void colorizeTextPart(const TColoredTextPart& ctp);
-public:
-    void removeText(const QString& textPart);
-    void addText(const QString& textPart, QColor color, int column = -1);
-    void setFindText(const QString& textPart, QColor color, int column = -1);
-    void unsetFindText(const QString& textPart);
-    void drawText(QPainter *painter, const QStyleOptionViewItem &option, int column, const QString& text);
-    TColoredTextPart *getByText(const QString& text);
-    const TColoredTextParts& getList() const { return _coloredTextParts; }
-
-};
 
 struct CellColorizer
 {
@@ -101,7 +79,7 @@ struct RowColorizer: public CellColorizer
 
 struct RowStyle
 {
-	TextPartColorizer textPartColorizer;
+	TextColorizer textColorizer;
 	QMap<int, QSharedPointer<CellColorizer>> cellColorizer;
 	RowColorizer rowColorizer;
 	bool colorizeFullRow;
@@ -125,7 +103,8 @@ struct RowStyle
 
 class LogView : public QTableView
 {
-    Q_OBJECT
+	Q_OBJECT
+	QString _settingsPath;
 	RowStyle _rowStyle;
     //QueryOptions *_QueryOptions;
     //Q_PROPERTY(bool followMode READ followMode WRITE setFollowMode)
@@ -237,12 +216,13 @@ class LogWindow: public QSplitter
 {
 	friend class LogWindowTest;
     Q_OBJECT
-    LogModel *_logModel;
-    LogView *_logView;
-    DetailView *_detailView;
+    QSharedPointer<LogModel> model_;
+	QSharedPointer<LogView> mainView_;
+	QSharedPointer<DetailView> detailView_;
 protected:
     QString _settingsPath; // stored for creating subwindows
     LogWindow();
+	~LogWindow();
 public:
 
     static LogWindow *create(Conditions qc, bool useTemplate = false);
@@ -251,8 +231,8 @@ public:
 
     bool queryWithCondition(QString, int);
     bool query(const Conditions &qc);
-    void setModel(LogModel *model);
-    LogModel *model() const { return _logModel; }
+    void setModel(QSharedPointer<LogModel> model);
+	QSharedPointer<LogModel> model() const { return model_; }
 
     void refreshTitle();
     void writeSettings(const QString& basePath);

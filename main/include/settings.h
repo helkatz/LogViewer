@@ -152,6 +152,7 @@ public:
 			PROP(QString, fmtTo)
 		PROPLIST_END(columns)
 	PROPLIST_END(columnizer)
+
 	PROPLIST_BEGIN(filters)
 		PROP(int, limit)
 		PROP(QString, sql)
@@ -194,11 +195,19 @@ public:
 		PROP(ColorList, availableCellColors)
 	PROPLIST_END(column)
 
+	PROPLIST_BEGIN(textColorizer)
+		PROP(QString, text)
+		PROP(QFont, font)
+		PROP(bool, useRegex)
+		PROP(bool, wordOnly)
+		PROP(bool, wholeRow)
+		PROP(bool, caseSensitive)
+		PROP(QColor, foregroundColor)
+		PROP(QColor, backgroundColor)
+	PROPLIST_END(textColorizer)
+
 	PROPCLASS_BEGIN(rowStyle)
-		PROPLIST_BEGIN(textColorizer)
-			PROP(QString, textPart)
-			PROP(QColor, textPartColor)
-		PROPLIST_END(textColorizer)
+		PROPLIST(textColorizer, textColorizer)
 		PROP(bool, alternatingRowColors)
 	PROPCLASS_END(rowStyle)
 

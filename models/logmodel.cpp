@@ -1,8 +1,9 @@
 #include "logmodel.h"
-#include "logsqlmodel.h"
-#include "logfilemodel.h"
-#include "logupdater.h"
+#include <logupdater.h>
 #if 1
+
+//QMap<QString, QSharedPointer<CreatorBase>> LogModelFactory::registered_;
+LogModelFactory *LogModelFactory::instance_;
 
 LogModel::LogModel(QObject *parent):
     QSqlQueryModel(parent),
@@ -19,7 +20,10 @@ QVariant LogModel::data(int row, int col, int role) const
 
 QVariant LogModel::data(const QModelIndex &index, int role) const
 {
-    if(role != Qt::DisplayRole)
+	if(role == Qt::TextAlignmentRole)
+		return QFlag( Qt::AlignLeft | Qt::AlignTop);
+
+    if(role != Qt::DisplayRole && role != Qt::ToolTipRole)
         return QVariant();
 
 	// use currentRow for all other cols than the first one its faster then query in map
@@ -28,7 +32,7 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
 
     DataCache::const_iterator it = _dataCache.find(index.row());
     if(it == _dataCache.end()) {
-		loadData(index);
+		loadData(index.row());
 		if (_currentRow.row == index.row())
 			return _currentRow.record.value(index.column());
     }
@@ -123,6 +127,14 @@ void LogModel::setQueryConditions(const Conditions & qc)
 	_queryConditions = qc;
 }
 
+void LogModel::followTail(bool enabled)
+{
+	if (enabled)
+		observer_.run();
+	else
+		observer_.pause();
+}
+
 void LogModel::addView(LogView *view)
 {
     _views.append(view);
@@ -150,3 +162,4 @@ void Conditions::readSettings(const QString &basePath)
         qDebug() << name<<"="<<_hive[name];
     }
 }
+

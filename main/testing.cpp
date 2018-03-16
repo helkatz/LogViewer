@@ -5,6 +5,7 @@
 #include "Utils/LoggerSqlHandler.h"
 #include "forms/QueryDialog.h"
 #include "forms/columnizerwidget.h"
+#include <forms/rowlayoutwidget.h>
 #include <QApplication>
 #include <QTableView>
 #include <QAbstractTableModel>
@@ -26,8 +27,7 @@
 #include <QErrorMessage>
 #include <qsqldatabase.h>
 #include <mutex>
-#include "logstashmodel.h"
-#include "logfilemodel.h"
+#include <models/logstash/logstashmodel.h>
 
 using namespace logger;
 
@@ -38,6 +38,14 @@ void WidgetTest::ConnectionsWidgetTest()
 	w.resize(500, w.height());
 	w.exec();
 	exit(0);
+}
+void WidgetTest::RowLayoutWidgetTest()
+{
+/*	RowStyle style;
+	RowLayoutWidget w(nullptr, style, QModelIndex());
+	w.resize(1000, w.height());
+	w.exec();
+	exit(0);*/
 }
 void WidgetTest::ColumnizerWidgetTest()
 {
@@ -109,9 +117,9 @@ void LogWindowTest::run()
 	LogWindow *logView = qobject_cast<LogWindow *>(window->widget());
 	QTimer scrollTimer;
 //	log_trace(0) << "thread" << currentThreadId();
-	connect(this, &LogWindowTest::scrolltable, logView->_logView, [logView](QModelIndex index) {
+	connect(this, &LogWindowTest::scrolltable, logView->mainView_.data(), [logView](QModelIndex index) {
 //		log_trace(0) << "thread" << currentThreadId();
-		logView->_logView->scrollTo(index);
+		logView->mainView_->scrollTo(index);
 	});
 			
 	connect(&scrollTimer, &QTimer::timeout, this, [this, &logView]() {

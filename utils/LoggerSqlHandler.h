@@ -1,5 +1,6 @@
 #pragma once
 #include "utils.h"
+#include <QSqlField>
 #include <qthread.h>
 #include <mutex>
 #include <qlogging.h>

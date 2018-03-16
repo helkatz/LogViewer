@@ -10,29 +10,30 @@
 #include <QSqlRecord>
 #include <QSqlField>
 #include <ostream>
-LogUpdater *LogUpdater::_instance = &LogUpdater::instance();
+LogUpdater *LogUpdater::_instance = nullptr;
 QMap<QString, ObserverBase::Ptr> ObserverBase::_observers;
-void ObserverFile::processChanges()
+bool ObserverFile::processChanges()
 {
 	// when watched by system then do nothing
 	if (watched)
-		return;
+		return false;
 	if (_lastSize == _file.size())
-		return;
+		return false;
 	handleFileChanged(_fileName);
+	return true;
 }
 
 void ObserverFile::handleFileChanged(const QString& fileName)
 {
-	Q_UNUSED(fileName)
+	Q_UNUSED(fileName);
 	emit observedObjectChanged(getId(), _lastSize);
 	_lastSize = _file.size();
 }
 
-void ObserverTable::processChanges()
+bool ObserverTable::processChanges()
 {
 	if (_db.open() == false)
-		return;
+		return false;
 	utils::database::SqlQuery q(_db);
 	QString sql = QString("select max(`%1`) as id from %2 where `%1`>%3")
 		.arg(_pk).arg(_table).arg(_fromPk);
@@ -49,6 +50,7 @@ void ObserverTable::processChanges()
 	if (q.lastError().isValid()) {
 		log_debug() << "error " << q.lastError().text();
 	}
+	return true;
 }
 
 LogUpdater::LogUpdater(QObject *parent) :

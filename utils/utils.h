@@ -13,6 +13,22 @@
 #include <logger/Logger.h>
 
 //#include "Utils/Logger.h"
+inline std::ostream& operator << (std::ostream& os, const QString& v)
+{
+	os << v.toStdString();
+	return os;
+}
+inline std::istream& operator >> (std::istream& is, const QString& v)
+{
+	is >> v;
+	return is;
+}
+
+inline QString capitalize(const QString& s)
+{
+	return s[0].toUpper() + s.mid(1).toLower();
+}
+
 namespace logger {
 	inline logger::LogStream& operator << (logger::LogStream& ls, const QString& v)
 	{

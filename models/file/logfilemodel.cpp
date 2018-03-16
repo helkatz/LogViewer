@@ -1,9 +1,8 @@
-#include "logupdater.h"
-#include "logview.h"
 #include "logfilemodel.h"
-
-#include "common.h"
-#include "Utils/utils.h"
+#include <logupdater.h>
+#include <logview.h>
+#include <common.h>
+#include <utils/utils.h>
 
 #include <QFile>
 #include <QTextStream>
@@ -17,21 +16,23 @@
 #include <deque>
 #include <iostream>
 
+namespace {
+	auto reg = LogModelFactory::Register<LogFileModel>("LogFileModel");
+}
 LogFileModel::LogFileModel(QObject *parent):
     LogModel(parent)
 {
 }
 
-LogModel::CurrentRow& LogFileModel::loadData(const QModelIndex & index) const
+LogModel::CurrentRow& LogFileModel::loadData(uint64_t index) const
 {
-	quint64 row = index.row();
 	LogEntry logEntry(_parser->columnNames().size());
 	_currentRow.reset();
-	if (_parser->readLogEntry(row, logEntry) == false)
+	if (_parser->readLogEntry(index, logEntry) == false)
 		return _currentRow;
 	QSqlRecord r;
 	logEntry.getRecord(r);
-	_currentRow.set(index.row(), r);
+	_currentRow.set(index, r);
 	//_dataCache[index.row()] = r;
 	return _currentRow;
 }
@@ -56,9 +57,14 @@ int LogFileModel::fetchToBegin()
 	return _parser->fetchToBegin(100);
 };
 
-int LogFileModel::fetchMoreFrom(quint32 row, quint32 items, bool back)
+int LogFileModel::fetchMoreBackward(quint32 row, quint32 items)
 {
-	return _parser->fetchMoreFrom(row, items, back);
+	return _parser->fetchMoreBackward(row, items);
+}
+
+int LogFileModel::fetchMoreForward(quint32 row, quint32 items)
+{
+	return _parser->fetchMoreForward(row, items);
 }
 
 int LogFileModel::fetchMoreFromBegin(quint32 items)
@@ -79,6 +85,7 @@ bool LogFileModel::query(const Conditions &queryConditions)
 {
     if (!_parser) {
         _parser = QSharedPointer<Parser>(new Parser(this, qc().fileName()));
+
         if (!_parser->open(qc().fileName().toStdString().c_str())) {
             QMessageBox::critical(0, tr("error"), tr("could not open file %1").arg(qc().fileName()));
             throw std::exception();
@@ -93,11 +100,16 @@ bool LogFileModel::query(const Conditions &queryConditions)
         }
 
         _rows = _parser->getRowCount();		
-        ObserverFile::createObserver(this, qc().fileName());
+        //ObserverFile::createObserver(this, qc().fileName());
     }
     _parser->setFilter(queryConditions.queryString());
 	LogEntry entry(_parser->columnNames().size());
 	_parser->readLogEntry(0, entry); // @testing
+
+	observer_.install(std::chrono::milliseconds{ 1000 }, [this] {
+		_parser->refresh();
+	});
+
     emit layoutChanged();
     return true;
 }

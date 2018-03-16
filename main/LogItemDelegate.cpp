@@ -20,10 +20,12 @@ QColor LogItemDelegate::xgetColorFromString(QString s, bool sameRGB) const
 }
 
 void LogItemDelegate::paint(QPainter *painter,
-	const QStyleOptionViewItem &option,
+	const QStyleOptionViewItem &aoption,
 	const QModelIndex &index) const
 {
-	//qDebug() << "painter" << painter;
+	QStyleOptionViewItem option = aoption;
+	initStyleOption(&option, index);
+
 	QVariant text = index.model()->data(index, Qt::DisplayRole);
 	if (option.showDecorationSelected && (option.state & QStyle::State_Selected)) {
 		if (option.state & QStyle::State_Active)
@@ -41,19 +43,10 @@ void LogItemDelegate::paint(QPainter *painter,
 			text = text.toDateTime().toString("dd.MMM hh:mm:ss.zzz");
 			//text = text.toDateTime().toString();
 		}
-		QStyleOptionViewItem myOption = option;
-		//myOption.displayAlignment 1= Qt::AlignRight | Qt::AlignVCenter;
-		QBrush orgBrush = painter->brush();
+
 		QPen savePen = painter->pen();
 		LogView *view = qobject_cast<LogView *>(this->parent());
-		auto qsum = [](const QString& s) -> quint32 {
-			quint32 qsum_ = 0;
-			foreach(auto ch, s.toStdString())
-			{
-				qsum_ += ch;
-			}
-			return qsum_;
-		};
+
 		if (view) {
 			// colorize the forground depends on chars
 			CellColorizer& colorizer = view->getRowStyle().getCellColorizer(index.column());
@@ -70,21 +63,13 @@ void LogItemDelegate::paint(QPainter *painter,
 				QModelIndex colIndex = index.model()->index(index.row(), rColorizer.boundColumn, index);
 				auto colorizeByText = index.model()->data(colIndex).toString().mid(0, rColorizer.colorizeByChars);
 				QColor color = rColorizer.getColor(index.column(), colorizeByText);
-				painter->fillRect(myOption.rect, color);
+				painter->fillRect(option.rect, color);
 			}
 		}
 		auto lineEnd = text.toString().indexOf('\n');
 		QString messagePart = text.toString().mid(0, lineEnd);
-		view->getRowStyle().textPartColorizer.drawText(painter, myOption, index.column(), messagePart);
-		//painter->drawText(myOption.rect.bottomLeft(), text.toString());
+		view->getRowStyle().textColorizer.drawText(painter, option, index.column(), messagePart);
 
-		QRect r;
-		//QString textLeft = text.toString();
-		//myOption.palette.setColor(QPalette::HighlightedText, Qt::blue);
-		if (false && index.row() == view->currentIndex().row()) {
-			QColor bgColor = QColor(Qt::lightGray);
-			painter->fillRect(myOption.rect, bgColor);
-		}
 		painter->setPen(savePen);
 	} else{
 		QPen pen(Qt::green, 30, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);

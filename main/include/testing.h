@@ -25,8 +25,8 @@
 #include <QErrorMessage>
 #include <qsqldatabase.h>
 #include <mutex>
-#include "logstashmodel.h"
-#include "logfilemodel.h"
+#include <models/logstash/logstashmodel.h>
+#include <models/file/logfilemodel.h>
 
 
 #include "forms/connectionswidget.h"
@@ -34,6 +34,7 @@ struct WidgetTest
 {
 	static void ColumnizerWidgetTest();
 	static void ConnectionsWidgetTest();
+	static void RowLayoutWidgetTest();
 };
 class LogFileModelTest
 {
