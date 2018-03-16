@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TextColorizerWidget</class>
+ <widget class="QWidget" name="TextColorizerWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>472</width>
+    <height>416</height>
+   </rect>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::TabFocus</enum>
+  </property>
+  <property name="windowTitle">
+   <string>Text Colorizer</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout_2">
+   <item row="0" column="0" colspan="4">
+    <widget class="QTableWidget" name="items">
+     <property name="focusPolicy">
+      <enum>Qt::StrongFocus</enum>
+     </property>
+     <attribute name="horizontalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="horizontalHeaderMinimumSectionSize">
+      <number>10</number>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="verticalHeaderDefaultSectionSize">
+      <number>22</number>
+     </attribute>
+     <attribute name="verticalHeaderMinimumSectionSize">
+      <number>22</number>
+     </attribute>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="4">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QToolButton" name="add">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="toolTip">
+        <string>Add new row</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/icons8-add-row-16.png</normaloff>:/assets/icons/icons8-add-row-16.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="remove">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="toolTip">
+        <string>Remove current row</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/icons8-delete-row-16.png</normaloff>:/assets/icons/icons8-delete-row-16.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="regex">
+       <property name="toolTip">
+        <string>Use Regular Expression</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/regex.svg</normaloff>:/assets/icons/regex.svg</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="caseSensitive">
+       <property name="toolTip">
+        <string>Case Sensitive</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/case-sensitive.svg</normaloff>:/assets/icons/case-sensitive.svg</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="wholeWord">
+       <property name="toolTip">
+        <string>Whole word</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/whole-word.svg</normaloff>:/assets/icons/whole-word.svg</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QToolButton" name="color">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/icons8-variation-40.png</normaloff>:/assets/icons/icons8-variation-40.png</iconset>
+       </property>
+       <property name="popupMode">
+        <enum>QToolButton::InstantPopup</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="wholeCell">
+       <property name="toolTip">
+        <string>Colorize whole cell</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="wholeRow">
+       <property name="toolTip">
+        <string>Colorize whole row</string>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/icons8-horizontal-line-96.png</normaloff>:/assets/icons/icons8-horizontal-line-96.png</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="bold">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../default.qrc">
+         <normaloff>:/assets/icons/icons8-bold-30.png</normaloff>:/assets/icons/icons8-bold-30.png</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../default.qrc"/>
+ </resources>
+ <connections/>
+</ui>

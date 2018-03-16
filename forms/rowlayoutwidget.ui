@@ -6,298 +6,211 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>521</width>
-    <height>656</height>
+    <width>433</width>
+    <height>552</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
-   <item row="0" column="1">
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QFontComboBox" name="cbFontStyle"/>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="spinFontSize"/>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-     <item row="1" column="0">
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2"/>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="groupBox_2">
-         <property name="title">
-          <string>Colorize Cells / Rows</string>
-         </property>
-         <property name="flat">
-          <bool>false</bool>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-         <layout class="QGridLayout" name="gridLayout_3">
-          <property name="leftMargin">
-           <number>3</number>
+   <item row="1" column="0">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Font and size</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="0">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QFontComboBox" name="cbFontStyle"/>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinFontSize"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="topMargin">
-           <number>0</number>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
           </property>
-          <item row="1" column="5">
-           <widget class="QToolButton" name="btnPickRowColor">
-            <property name="text">
-             <string>...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="5">
-           <widget class="QToolButton" name="btnPickCellColor">
-            <property name="text">
-             <string>...</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QSpinBox" name="spinColorizeRowByChar"/>
-          </item>
-          <item row="0" column="1">
-           <widget class="QSpinBox" name="spinColorizeCellByChar"/>
-          </item>
-          <item row="0" column="2">
-           <widget class="QLabel" name="label_5">
-            <property name="toolTip">
-             <string>colorize background color by charcount</string>
-            </property>
-            <property name="text">
-             <string>BG</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QSpinBox" name="spinLigthness">
-            <property name="maximum">
-             <number>500</number>
-            </property>
-            <property name="value">
-             <number>50</number>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="6">
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="toolTip">
-             <string>colorize foreground color by charcount</string>
-            </property>
-            <property name="toolTipDuration">
-             <number>-1</number>
-            </property>
-            <property name="whatsThis">
-             <string extracomment="wt"/>
-            </property>
-            <property name="text">
-             <string>FG</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QCheckBox" name="alternateCellColor">
-            <property name="text">
-             <string>Alternate</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3"/>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
-           <item>
-            <widget class="QLabel" name="label_2">
-             <property name="text">
-              <string>Colorize Background in Row</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="groupBox">
-         <property name="title">
-          <string>GroupBox</string>
-         </property>
-         <property name="flat">
-          <bool>false</bool>
-         </property>
-         <property name="checkable">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Cororize Textpart</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_5">
-         <item>
-          <widget class="QComboBox" name="cbTextPartColor">
-           <property name="editable">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btnAddTextPart">
-           <property name="text">
-            <string>+</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btnRemoveTextPart">
-           <property name="text">
-            <string>-</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btnPickTextpartColor">
-           <property name="text">
-            <string>...</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_7">
-         <item>
-          <widget class="QSlider" name="sliderRed">
-           <property name="maximum">
-            <number>255</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="sliderGreen">
-           <property name="maximum">
-            <number>255</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="sliderBlue">
-           <property name="maximum">
-            <number>255</number>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QSlider" name="sliderTextPartColor">
-         <property name="maximum">
-          <number>1677215</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_6">
-         <item>
-          <widget class="QCheckBox" name="alternateRowColors">
-           <property name="text">
-            <string>Alternate Row Colors</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-    </layout>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="title">
+      <string>Colorize by character count</string>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="3" column="2">
+       <widget class="QSpinBox" name="spinColorizeRowByChar"/>
+      </item>
+      <item row="3" column="5">
+       <widget class="QToolButton" name="btnPickRowColor">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../assets/default.qrc">
+          <normaloff>:/assets/icons/icons8-variation-40.png</normaloff>:/assets/icons/icons8-variation-40.png</iconset>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::InstantPopup</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="7">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLabel" name="label_5">
+        <property name="toolTip">
+         <string>colorize background color by charcount</string>
+        </property>
+        <property name="text">
+         <string>BG</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QSpinBox" name="spinLigthness">
+        <property name="maximum">
+         <number>500</number>
+        </property>
+        <property name="value">
+         <number>50</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="6" colspan="2">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_4">
+        <property name="toolTip">
+         <string>colorize foreground color by charcount</string>
+        </property>
+        <property name="toolTipDuration">
+         <number>-1</number>
+        </property>
+        <property name="whatsThis">
+         <string extracomment="wt"/>
+        </property>
+        <property name="text">
+         <string>FG</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QSpinBox" name="spinColorizeCellByChar"/>
+      </item>
+      <item row="0" column="5">
+       <widget class="QToolButton" name="btnPickCellColor">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../assets/default.qrc">
+          <normaloff>:/assets/icons/icons8-variation-40.png</normaloff>:/assets/icons/icons8-variation-40.png</iconset>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::InstantPopup</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2" colspan="6">
+       <widget class="QCheckBox" name="alternateRowColors">
+        <property name="contextMenuPolicy">
+         <enum>Qt::PreventContextMenu</enum>
+        </property>
+        <property name="text">
+         <string>Alternate Row Colors</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2" colspan="3">
+       <widget class="QCheckBox" name="alternateCellColor">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Alternating Colors also when different lines would have the same Color&lt;/span&gt;&lt;/p&gt;&lt;p&gt;This feature can be useful on Date colorizeing to garantuee always &lt;br/&gt;defferent colors on time change&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>Alternate</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="5">
+       <widget class="QCheckBox" name="wholeRow">
+        <property name="toolTip">
+         <string>Colorize the whole Row instead only the Cell</string>
+        </property>
+        <property name="text">
+         <string>Whole Row</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>Colorize by specific Text</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="TextColorizerWidget" name="textColorizer" native="true"/>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>
- <resources/>
+ <customwidgets>
+  <customwidget>
+   <class>TextColorizerWidget</class>
+   <extends>QWidget</extends>
+   <header>TextColorizerWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../assets/default.qrc"/>
+ </resources>
  <connections/>
 </ui>

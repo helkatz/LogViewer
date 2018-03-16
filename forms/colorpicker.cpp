@@ -4,35 +4,35 @@
 #include <qmenu.h>
 #include <qwidgetaction.h>
 #include <qscreen.h>
+
 ColorPicker::ColorPicker(QWidget *parent)
 	: QWidget(parent),
 	ui(new Ui::ColorPicker())
 {
 	ui->setupUi(this);
 	QTableWidget *tw = ui->tableAvailableColors;
-	//tw->setRowCount(10);
-	//tw->setColumnCount(10);
-	//tw->setItem(8, 0, new QTableWidgetItem);
-	//tw->item(8, 0)->setBackground(Qt::red);
+
 	ColorList cl;
-	for (int i = 0; i < 0; i++) {
+	for (int i = 0; i < 100; i++) {
 		QColor color(i * 200);
 		cl.push_back(color);
 	}
 	setAvailableColors(cl);
+
 	connect(ui->tableAvailableColors, &QTableWidget::doubleClicked, this, [&](const QModelIndex& index) {
-		auto idx = index.row() * maxColumns + index.column();
+		size_t idx = index.row() * maxColumns + index.column();
 		if (idx >= _availableColors.size())
 			return;
 		QColor color = _availableColors.at(idx);
-		_availableColors.erase(_availableColors.begin() + idx);// std::find_if(_availableColors.begin(), _availableColors.end(), [color](const QColor& _color) { return _color == color;  })
+		_availableColors.erase(_availableColors.begin() + idx);
 		_usedColors.push_back(color);
 		setAvailableColors(_availableColors);
 		setUsedColors(_usedColors);
 		emit usedColorsChanged();
 	});
+
 	connect(ui->tableUsedColors, &QTableWidget::doubleClicked, this, [&](const QModelIndex& index) {
-		auto idx = index.row() * maxColumns + index.column();
+		size_t idx = index.row() * maxColumns + index.column();
 		if (idx >= _usedColors.size())
 			return;
 		QColor color = _usedColors.at(idx);
@@ -42,6 +42,7 @@ ColorPicker::ColorPicker(QWidget *parent)
 		setUsedColors(_usedColors);
 		emit usedColorsChanged();
 	});
+
 	QColorDialog *d = new QColorDialog(this);
 	d->setWindowFlags(Qt::Popup);
 	d->setOptions(QColorDialog::DontUseNativeDialog | QColorDialog::ShowAlphaChannel);
@@ -123,3 +124,5 @@ const ColorList& ColorPicker::getUsedColors() const
 {
 	return _usedColors;
 }
+
+

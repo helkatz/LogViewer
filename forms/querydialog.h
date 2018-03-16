@@ -2,8 +2,7 @@
 #define QUERYDIALOG_H
 
 #include <QDialog>
-//#include "../QueryOptions.h"
-#include "logsqlmodel.h"
+#include <models/logmodel.h>
 namespace Ui {
 class QueryDialog;
 }

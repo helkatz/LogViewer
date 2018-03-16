@@ -1,0 +1,22 @@
+<RCC>
+  <qresource prefix="/assets">
+    <file>icons/bold.png</file>
+    <file>icons/case-sensitive.svg</file>
+    <file>icons/icons8-add-new-16.png</file>
+    <file>icons/icons8-add-row-16.png</file>
+    <file>icons/icons8-bold-30.png</file>
+    <file>icons/icons8-delete-row-16.png</file>
+    <file>icons/icons8-horizontal-line-96.png</file>
+    <file>icons/icons8-plus-math-16.png</file>
+    <file>icons/icons8-variation-40.png</file>
+    <file>icons/regex.svg</file>
+    <file>icons/whole-word.svg</file>
+    <file>icons/bold.png</file>
+    <file>icons/icons8-bold-30.png</file>
+    <file>icons/icons8-horizontal-line-96.png</file>
+    <file>icons/icons8-variation-40.png</file>
+    <file>icons/case-sensitive.svg</file>
+    <file>icons/regex.svg</file>
+    <file>icons/whole-word.svg</file>
+  </qresource>
+</RCC>

@@ -1,10 +1,14 @@
 #include "querydialog.h"
 #include "ui_querydialog.h"
 #include "settings.h"
-#include "logstashmodel.h"
-#include "Utils/utils.h"
+
+//@TODO should be abstract
+#include <models/logstash/logstashmodel.h>
+#include <models/database/logsqlmodel.h>
+
 #include <QtWidgets>
 #include <QtSql/QtSql>
+
 enum class ConnectionType
 {
 	Database,

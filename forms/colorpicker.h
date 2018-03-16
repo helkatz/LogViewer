@@ -3,12 +3,14 @@
 
 #include <QWidget>
 #include <qlist.h>
+#include <qtablewidget.h>
 namespace Ui {
 	class ColorPicker;
 }
 
 class QTableWidget;
 typedef QList<QColor> ColorList;
+
 class ColorPicker : public QWidget
 {
 	Q_OBJECT
