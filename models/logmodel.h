@@ -159,11 +159,9 @@ public:
 
 	virtual quint64 getBackRow() const;
 
-	virtual int fetchMoreBackward(quint32 row, quint32 items);
+	virtual int fetchMoreUpward(quint32 row, quint32 items);
 
-	virtual int fetchMoreForward(quint32 row, quint32 items);
-
-	virtual int fetchMoreFrom(quint32 row, quint32 items, bool back);
+	virtual int fetchMoreDownward(quint32 row, quint32 items);
 
 	virtual int fetchToEnd();
 

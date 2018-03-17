@@ -77,11 +77,13 @@ quint64 LogModel::getBackRow() const
 	return 0;
 }
 
-int LogModel::fetchMoreFrom(quint32 row, quint32 items, bool back)
+int LogModel::fetchMoreUpward(quint32, quint32)
 {
-	Q_UNUSED(row);
-	Q_UNUSED(items);
-	Q_UNUSED(back);
+	return 0;
+}
+
+int LogModel::fetchMoreDownward(quint32, quint32)
+{
 	return 0;
 }
 

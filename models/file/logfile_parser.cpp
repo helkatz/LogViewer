@@ -18,6 +18,7 @@
 #include <type_traits>
 #include <iterator>
 #include <string>
+#include <stdlib.h> 
 
 QMap<QString, Parser *> Parser::_parserMap;
 Columnizer::List Columnizer::_columnizers;
@@ -589,42 +590,32 @@ int Parser::fetchToBegin(quint32 items)
 	return itemsFetched;
 }
 
-int Parser::fetchMoreBackward(quint32 row, quint32 items)
+int Parser::fetchMoreUpward(quint32 row, quint32 items)
 {
-	quint32 itemsFetched = 0;
 	//@TODO assign jst to init with right col size LogEntry should be changed so that it does not need that
-	LogEntry curEntry = _entriesCache.back();
+	LogEntry entry = _entriesCache.back();
 
-	if (_entriesCache.findInQueue(row, curEntry)) {
-		quint32 distance = _entriesCache.backRow() - row;
-		items = distance > items ? 0 : items - distance;
+	// check we have the row already cached and calc how many items we should prepend
+	if (_entriesCache.findInQueue(row, entry)) {
+		quint32 distance = row - _entriesCache.frontRow();
+		items = distance >= items ? 0 : items - distance;
+		if (items > 0)
+			entry = _entriesCache.front();
+		_file.seek(entry.filePos);
 	}
 	else {
-		// when cur row not reached to the end gap then do nothing
-		if (row < _backEntriesCache.frontRow())
-			return 0;
-		_entriesCache.clear();
-		for (auto e: _backEntriesCache)
-			_entriesCache.push_back(e);
-		_entriesCache.setFrontRow(_backEntriesCache.frontRow());
+		if (std::abs(_entriesCache.distance(row)) > 100)
+			_entriesCache.clear();
+		_file.seek(getFilePosFromRow(row));	
+		_entriesCache.setBackRow(row);
 	}
-		
-	// when cur front entry actually far from  frontqueue then increase front/back row
-	// and then read entries back to fill up
-	_entriesCache.setBackRow(_entriesCache.backRow() - items);
-	while (_entriesCache.back().filePos > 0
-			&& _backEntriesCache.front().filePos > curEntry.filePos
-			&& itemsFetched < items) {
-		readLogEntry(_entriesCache.backRow() + 1, curEntry);
-		itemsFetched++;
-	}
-	_entriesCache.setBackRow(getRowCount());
-	//row += itemsFetched;
-	//getRowFromFilePos()
+
+	quint32 itemsFetched = readLogEntry(_file, entry, -items);
+
 	return itemsFetched;
 }
 
-int Parser::fetchMoreForward(quint32 row, quint32 items)
+int Parser::fetchMoreDownward(quint32 row, quint32 items)
 {
 	quint32 itemsFetched = 0;
 	LogEntry curEntry = _entriesCache.front();

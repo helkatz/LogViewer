@@ -26,9 +26,9 @@ LogFileModel::LogFileModel(QObject *parent):
 
 LogModel::CurrentRow& LogFileModel::loadData(uint64_t index) const
 {
-	LogEntry logEntry(_parser->columnNames().size());
+	LogEntry logEntry(parser_->columnNames().size());
 	_currentRow.reset();
-	if (_parser->readLogEntry(index, logEntry) == false)
+	if (parser_->readLogEntry(index, logEntry) == false)
 		return _currentRow;
 	QSqlRecord r;
 	logEntry.getRecord(r);
@@ -39,37 +39,37 @@ LogModel::CurrentRow& LogFileModel::loadData(uint64_t index) const
 
 quint64 LogFileModel::getFrontRow() const
 {
-	return _parser->getFrontRow();
+	return parser_->getFrontRow();
 }
 
 quint64 LogFileModel::getBackRow() const
 {
-	return _parser->getBackRow();
+	return parser_->getBackRow();
 }
 
 int LogFileModel::fetchToEnd()
 { 
-	return _parser->fetchToEnd(100);
+	return parser_->fetchToEnd(100);
 };
 
 int LogFileModel::fetchToBegin()
 { 
-	return _parser->fetchToBegin(100);
+	return parser_->fetchToBegin(100);
 };
 
-int LogFileModel::fetchMoreBackward(quint32 row, quint32 items)
+int LogFileModel::fetchMoreUpward(quint32 row, quint32 items)
 {
-	return _parser->fetchMoreBackward(row, items);
+	return parser_->fetchMoreUpward(row, items);
 }
 
-int LogFileModel::fetchMoreForward(quint32 row, quint32 items)
+int LogFileModel::fetchMoreDownward(quint32 row, quint32 items)
 {
-	return _parser->fetchMoreForward(row, items);
+	return parser_->fetchMoreDownward(row, items);
 }
 
 int LogFileModel::fetchMoreFromBegin(quint32 items)
 {
-	auto fetched = _parser->fetchMoreFromBegin(items);
+	auto fetched = parser_->fetchMoreFromBegin(items);
 	if (fetched != 0)
 		emit layoutChanged();
 	return fetched;
@@ -83,31 +83,31 @@ int LogFileModel::fetchMoreFromEnd(quint32 items)
 
 bool LogFileModel::query(const Conditions &queryConditions)
 {
-    if (!_parser) {
-        _parser = QSharedPointer<Parser>(new Parser(this, qc().fileName()));
+    if (!parser_) {
+        parser_ = QSharedPointer<Parser>(new Parser(this, qc().fileName()));
 
-        if (!_parser->open(qc().fileName().toStdString().c_str())) {
+        if (!parser_->open(qc().fileName().toStdString().c_str())) {
             QMessageBox::critical(0, tr("error"), tr("could not open file %1").arg(qc().fileName()));
             throw std::exception();
         }
 
         int col = 0;
-        foreach(const QString& name, _parser->columnNames()) {
+        foreach(const QString& name, parser_->columnNames()) {
             QSqlField f;
             f.setName(name);
             _columnsInformation.append(f);
             setHeaderData(col++, Qt::Horizontal, tr("%1").arg(capitalize(name)));
         }
 
-        _rows = _parser->getRowCount();		
+        _rows = parser_->getRowCount();		
         //ObserverFile::createObserver(this, qc().fileName());
     }
-    _parser->setFilter(queryConditions.queryString());
-	LogEntry entry(_parser->columnNames().size());
-	_parser->readLogEntry(0, entry); // @testing
+    parser_->setFilter(queryConditions.queryString());
+	LogEntry entry(parser_->columnNames().size());
+	parser_->readLogEntry(0, entry); // @testing
 
 	observer_.install(std::chrono::milliseconds{ 1000 }, [this] {
-		_parser->refresh();
+		parser_->refresh();
 	});
 
     emit layoutChanged();
@@ -133,7 +133,7 @@ void LogFileModel::readSettings(const QString &basePath)
 
 QString LogFileModel::getTitle() const
 {
-    return _parser->getFileName();
+    return parser_->getFileName();
 }
 
 void LogFileModel::observedObjectChanged(const QString& id, const int maxId)
@@ -145,7 +145,7 @@ void LogFileModel::observedObjectChanged(const QString& id, const int maxId)
 		b |= view->followMode();
 	}
     if (id == ObserverFile::createId(qc().fileName())) {
-        _parser->refresh();
+        parser_->refresh();
         emit layoutChanged();
     }
 }
@@ -153,7 +153,7 @@ void LogFileModel::observedObjectChanged(const QString& id, const int maxId)
 void LogFileModel::entriesCountChanged(quint32 newCount)
 {
 	Q_UNUSED(newCount);
-    _rows = _parser->getRowCount();
+    _rows = parser_->getRowCount();
     emit layoutChanged();
 }
 
@@ -163,8 +163,8 @@ QModelIndex LogFileModel::find(const QModelIndex& fromIndex, const QStringList &
 	Q_UNUSED(columns);
     qDebug() << "find fromPos:" << fromIndex.row() << "dir:" << down << "where:" << search;
     QModelIndex index = fromIndex;
-    LogEntry entry(_parser->columnNames().size());
-    if(_parser->readLogEntry(fromIndex.row() + (down ? 1 : 0), entry, search, down) == false)
+    LogEntry entry(parser_->columnNames().size());
+    if(parser_->readLogEntry(fromIndex.row() + (down ? 1 : 0), entry, search, down) == false)
         QMessageBox::information(0, "information", "text not found");
     else
         index = createIndex(entry.row, fromIndex.column());

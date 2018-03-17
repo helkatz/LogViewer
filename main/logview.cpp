@@ -222,7 +222,7 @@ void LogView::verticalScrollbarValueChanged(int value)
 	}
 	else if (down == true && value >= max - visibleRows) {
 		blockSignals(true);
-		fetched = model()->fetchMoreFrom(value, visibleRows, true);
+		fetched = model()->fetchMoreDownward(value, visibleRows);
 		log_trace(5) << "scrollbar value=" << value << "fetched=" << fetched;
 		//verticalScrollBar()->blockSignals(true);
 		//verticalScrollBar()->setValue(value - fetched);
@@ -237,7 +237,7 @@ void LogView::verticalScrollbarValueChanged(int value)
 		//emit model()->layoutChanged();
 	} else if (down == false && value < min + visibleRows) {
 		blockSignals(true);
-		fetched = model()->fetchMoreFrom(value, visibleRows, false);
+		fetched = model()->fetchMoreUpward(value, visibleRows);
 		log_trace(5) << "scrollbar value=" << value << "fetched=" << fetched;
 		//verticalScrollBar()->blockSignals(true);
 		//verticalScrollBar()->setValue(value + fetched);

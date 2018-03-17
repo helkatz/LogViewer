@@ -238,6 +238,7 @@ void playground(QApplication& a)
 int testing()
 {	
 	//new LogWindowTest();
+	LogFileModelTest().testGetData();
 	//LogStashModelTest().testGetData();
 	//LogFileModelTest().testGetData();
 
@@ -315,6 +316,7 @@ int CALLBACK WinMain(
 		a.setStyleSheet(styleSheet);
 	});
 	playground(a);
+	testing();
 #ifdef _DEBUG
 	Logger::set_level(".*", Logger::Level::Trace);
 	Logger::set_level(".*common.*", Logger::Level::Warning);

@@ -29,7 +29,8 @@ class LogFileModel : public LogModel
 {
 	friend class LogFileModelTest;
     Q_OBJECT
-    QSharedPointer<Parser> _parser;
+
+    QSharedPointer<Parser> parser_;
 
 protected:
     FileConditions qc() const
@@ -47,9 +48,9 @@ protected:
 
 	int fetchToBegin() override;
 
-	int fetchMoreBackward(quint32 row, quint32 items) override;
+	int fetchMoreUpward(quint32 row, quint32 items) override;
 
-	int fetchMoreForward(quint32 row, quint32 items) override;
+	int fetchMoreDownward(quint32 row, quint32 items) override;
 
 	int fetchMoreFromBegin(quint32 items) override;
 

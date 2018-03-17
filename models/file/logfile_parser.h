@@ -151,6 +151,15 @@ public:
 		_backRow += correction;
 	}
 
+	qint32 distance(quint32 row) const
+	{
+		if (row < frontRow())
+			return row - frontRow();
+		if (row > backRow())
+			return row - backRow();
+		return 0;
+	}
+
 	quint32 backRow() const
 	{
 		return _backRow;
@@ -201,6 +210,7 @@ public:
 	{
 		return find(entry);
 	}
+
 	bool has(quint32 row) const
 	{
 		return row >= frontRow() && row <= backRow();
@@ -364,9 +374,9 @@ public:
 
 	int fetchToBegin(quint32 items);
 
-	int fetchMoreBackward(quint32 row, quint32 items);
+	int fetchMoreUpward(quint32 row, quint32 items);
 
-	int fetchMoreForward(quint32 row, quint32 items);
+	int fetchMoreDownward(quint32 row, quint32 items);
 
 	int fetchMoreFromBegin(quint32 items);
 
