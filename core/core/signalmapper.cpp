@@ -1,0 +1,2 @@
+#include <core/signalmapper.h>
+

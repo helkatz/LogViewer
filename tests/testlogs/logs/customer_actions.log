@@ -1,0 +1,143 @@
+2016-03-01T13:57:45.319+0100|7|Debug|Application|FS094|1588|0||0|utils::CGIApplication::startupMain configuration customer_actions 
+request uniqueid=1456857935
+username=b2b_jaxx_dev_jaxx
+tab=7
+langid=2
+domain=mobile.cashpoint.com  
+2016-03-01T13:57:45.712+0100|7|Debug|Application|FS094|1588|0||0|utils::CGIApplication::startupMain initialize configuration customer_actions 
+application.argc = 1
+application.argv[0] = H:\webroot\interfaces\1_4_8\customer_actions.exe
+application.baseName = customer_actions
+application.configDir = H:\webroot\interfaces\1_4_8\
+application.configFile = customer_actions
+application.dir = H:\webroot\interfaces\1_4_8\
+application.name = customer_actions.exe
+application.path = H:\webroot\interfaces\1_4_8\customer_actions.exe
+b2b.jaxx.address = 62716
+configuration.include.logging.path = /ini/logging_file.properties
+configuration.include.payment.path = /ini/payment.xml
+configuration.include.serverinfo.path = /ini/serverinfo.xml
+db.customer = customer_test
+db.customer_fra2 = customer_fra2
+db.customer_prod = customer_prod
+db.customer_test = customer_test
+db.geoip = geoip_test
+db.interbet = interbet_test
+db.interbet_fra2 = interbet_fra2
+db.interbet_prod = interbet_prod
+db.interbet_test = interbet_test
+db.langdb = langdb_test
+db.main = main_test
+db.myfslocal = myfslocal_test
+db.opengeodb = opengeodb_test
+db.path = /ini
+logging.channels.dbcsysc.class = RemoteSyslogChannel
+logging.channels.dbcsysc.facility = user
+logging.channels.dbcsysc.formatter.class = PatternFormatter
+logging.channels.dbcsysc.formatter.pattern = [info threadnr="%I" file="%U" line="%u" logger="%s"] %t
+logging.channels.dbcsysc.formatter.times = local
+logging.channels.dbcsysc.loghost = 10.12.6.202:514
+logging.channels.dbcsysc.name = customer_actions
+logging.channels.filelogger.channel1 = logpoint
+logging.channels.filelogger.channel2 = simple
+logging.channels.filelogger.class = SplitterChannel
+logging.channels.logpoint.archive = number
+logging.channels.logpoint.class = FileChannel
+logging.channels.logpoint.formatter.class = PatternFormatter
+logging.channels.logpoint.formatter.pattern = %Y-%m-%dT%H:%M:%S.%i%Z|%l|%p|%s|%N|%P|%I|%U|%u|%t
+logging.channels.logpoint.formatter.times = local
+logging.channels.logpoint.path = /logs/customer_actions.log
+logging.channels.logpoint.purgeCount = 2
+logging.channels.logpoint.rotation = 00:00
+logging.channels.simple.archive = number
+logging.channels.simple.class = FileChannel
+logging.channels.simple.formatter.class = PatternFormatter
+logging.channels.simple.formatter.pattern = %H:%M:%S.%i [%P:%q] %v[30] %t
+logging.channels.simple.formatter.times = local
+logging.channels.simple.path = /logs/simple/customer_actions.log
+logging.channels.simple.purgeCount = 1
+logging.channels.simple.rotation = 00:00
+logging.channels.splitter2.channel1 = simple
+logging.channels.splitter2.channel2 = dbcsysc
+logging.channels.splitter2.class = SplitterChannel
+logging.loggers.root.channel = filelogger
+logging.loggers.root.level = debug
+path = ./queries
+payment.neteller.config = 
+payment.neteller.config[1] = 
+response.errorReporting = .*
+serverInfo.location = com
+serverInfo.server = test
+system.currentDir = H:\webroot\interfaces\1_4_8\
+system.dateTime = 2016-03-01T12:57:45Z
+system.homeDir = C:\Windows\System32\
+system.nodeId = 00224d689267
+system.nodeName = FS094
+system.osArchitecture = IA32
+system.osName = Windows NT
+system.osVersion = 6.2 (Build 9200)
+system.pid = 1588
+system.tempDir = C:\Windows\
+  
+2016-03-01T13:57:46.901+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|386|try to get database for 'db.GeoData.geoip'
+2016-03-01T13:57:47.104+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|401|try to get database for 'db.geoip'
+2016-03-01T13:57:47.229+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|404|try to get handle for 'geoip_test'
+2016-03-01T13:57:47.635+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|386|try to get database for 'db.GeoData.opengeodb'
+2016-03-01T13:57:47.635+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|401|try to get database for 'db.opengeodb'
+2016-03-01T13:57:47.635+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|404|try to get handle for 'opengeodb_test'
+2016-03-01T13:57:47.635+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|386|try to get database for 'db.GeoData.interbet'
+2016-03-01T13:57:47.635+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|401|try to get database for 'db.interbet'
+2016-03-01T13:57:47.635+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|404|try to get handle for 'interbet_test'
+2016-03-01T13:57:47.651+0100|5|Notice|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|261|get session for database 'interbet_test'
+2016-03-01T13:57:47.651+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|266|loading config '/ini/db_interbet_test.xml'
+2016-03-01T13:57:47.651+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|289|created session with connectionstring: user=dba;password=***;host=interbet.test.mysql;db=interbet;compress=true;auto-reconnect=true
+2016-03-01T13:57:47.651+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|619|created session 0x01006fb0 with timeout '2016-03-01T13:37:47Z'
+2016-03-01T13:57:47.667+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|386|try to get database for 'db.JurisdictionModule.myfslocal'
+2016-03-01T13:57:47.667+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|401|try to get database for 'db.myfslocal'
+2016-03-01T13:57:47.792+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|404|try to get handle for 'myfslocal_test'
+2016-03-01T13:57:47.995+0100|6|Information|cpJurisdiction|FS094|1588|0|..\..\source\cpJurisdiction\src\Jurisdiction.cpp|86|getJurisdiction for id 0
+2016-03-01T13:57:48.026+0100|5|Notice|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|261|get session for database 'myfslocal_test'
+2016-03-01T13:57:48.026+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|266|loading config '/ini/db_myfslocal_test.xml'
+2016-03-01T13:57:48.026+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|289|created session with connectionstring: user=dba;password=***;host=fs.test.mysql;db=fs;compress=true;auto-reconnect=true
+2016-03-01T13:57:48.167+0100|6|Information|cpDBInterface|FS094|1588|0|..\..\source\cpDBInterface\src\database_private.cpp|619|created session 0x018abb50 with timeout '2016-03-01T13:37:48Z'
+2016-03-01T13:57:49.918+0100|7|Debug|Application|FS094|1588|0||0|exit response=<response success="true" legacy="true">
+	<error>
+		<error>
+			<number>0</number>
+			<message>ok</message>
+		</error>
+	</error>
+	<data>
+		<customdata>
+			<username>b2b_jaxx_dev_jaxx</username>
+			<firstname>Dev</firstname>
+			<lastname>Test</lastname>
+			<email>s.muscat@cashpoint.com</email>
+			<birthdate>1990-1-1</birthdate>
+			<country>GERMANY</country>
+			<street>100 Testing Street</street>
+			<zip>85540</zip>
+			<town>Munich</town>
+			<phone />
+			<membercard_no />
+			<notifyemail>0</notifyemail>
+			<bonussystem>3</bonussystem>
+			<smsnotify>1</smsnotify>
+			<countryid>82</countryid>
+			<nationality>82</nationality>
+			<currency>978</currency>
+			<timezoneminutes>0</timezoneminutes>
+			<stdstake>1000</stdstake>
+			<languageid>2</languageid>
+			<gender>1</gender>
+			<password>1</password>
+			<mcsendstatus>0</mcsendstatus>
+			<max_login_time>0</max_login_time>
+		</customdata>
+		<userfiles>
+			<allowupload>0</allowupload>
+			<filesleft>10</filesleft>
+		</userfiles>
+	</data>
+</response>
+

@@ -1,11 +1,10 @@
-#include "mainwindow.h"
-#include "testing.h"
-#include "logview.h"
-#include <logupdater.h>
-#include "Utils/utils.h"
-#include "Utils/LoggerSqlHandler.h"
-#include "forms/QueryDialog.h"
-#include "forms/columnizerwidget.h"
+#undef max
+#undef min
+#include <gui/mainwindow.h>
+#include <gui/settings_dialog.h>
+
+#include <utils/utils.h>
+
 #include <QApplication>
 #include <QTableView>
 #include <QAbstractTableModel>
@@ -27,6 +26,9 @@
 #include <QErrorMessage>
 #include <qsqldatabase.h>
 #include <mutex>
+
+
+#include "LoggerHandler.h"
 //#include <models/logstash/logstashmodel.h>
 //#include "logfilemodel.h"
 
@@ -66,186 +68,32 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 void initLogging()
 {
 	qInstallMessageHandler(myMessageOutput);
-	logger::SqlLogMessageHandler& sqlLogHandler = *(new SqlLogMessageHandler);
-	if (sqlLogHandler.init())
-		logger::Logger::register_message_handler(sqlLogHandler);
+	//logger::SqlLogMessageHandler& sqlLogHandler = *(new SqlLogMessageHandler);
+	//if (sqlLogHandler.init())
+	//	logger::Logger::register_message_handler(sqlLogHandler);
 
 	logger::LogfileMessageHandler& logfileHandler = *(new LogfileMessageHandler);
-	if (true && logfileHandler.init(Settings().general().logFile()))
+	if (logfileHandler.init(appSettings().general().logFile()))
 		logger::Logger::register_message_handler(logfileHandler);
-
+/*
 	logger::SyslogMessageHandler& syslogHandler = *(new SyslogMessageHandler);
 	if (false && syslogHandler.init())
 		logger::Logger::register_message_handler(syslogHandler);
-
+*/
 #ifdef _DEBUG
 	logger::Logger::get()
 		.set_level(logger::Logger::Level::Trace5)
 		.set_delimiter(" ");
 #else
 	logger::Logger::get()
-		.set_level(static_cast<logger::Logger::Level>(Settings().general().logLevel()))
+		.set_level(static_cast<logger::Logger::Level>(appSettings().general().logLevel()))
 		.set_delimiter(" ");
 
 #endif
 }
 
-#include <qtoolbutton.h>
-class QMyWidget : public QWidget
-{
-public:
-	QMyWidget(QWidget * parent) : QWidget(parent)
-	{
-		auto btn = new QToolButton(this);
-		auto layout = new QGridLayout;
-		layout->addWidget(btn);
-		setLayout(layout);
-	}
-};
-#include <forms/TextColorizerWidget.h>
-#include <forms/ColorPickerWidget.h>
-#include <forms/rowlayoutwidget.h>
-#include <TextColorizer.h>
-#include <qtableview.h>
-#include <qdatastream.h>
-struct Part {
-	using List = QList<Part>;
-	QString text;
-	int index;
-	TextColorize *colorize;
-};
-QDebug& operator << (QDebug& os, const Part& part)
-{
-	os << part.text << ":" << part.index;// (part.colorize != nullptr);
-	return os;
-}
-void playground(QApplication& a)
-{
-	std::vector<int> l1 = { 0,1,3,6,9,11 };
-	auto fromItem = std::upper_bound(l1.begin(), l1.end(), 2
-		, [](const auto &a, const auto &b)
-	{
-		return a > b;
-	});
-
-	return;
-	TextColorize::List _coloredTextParts;
-	auto match = [&_coloredTextParts](const QString& text, Part::List& parts)
-	{
-		QRegularExpression::PatternOptions options;
-		/*if (tc.caseSensitive == false)
-		options |= QRegularExpression::PatternOption::CaseInsensitiveOption;
-		*/
-		QString rePattern;
-		foreach(TextColorize ctp, _coloredTextParts) {
-			QString pattern;
-			if (ctp.caseSensitive == false)
-				pattern += "(?i)";
-			pattern += ctp.text;
-			pattern.prepend("(").append(")");
-			if(ctp.wordOnly)
-				pattern.prepend("(?:^|[^\\w])").append("(?:[^\\w]|$)");
-			rePattern += "|" + pattern;
-		}
-		rePattern = rePattern.mid(1);
-		QRegularExpression re(rePattern, options);
-
-		QRegularExpressionMatchIterator it = re.globalMatch(text);
-
-		int nonMatchedStart = 0;
-		bool hasMatches = it.hasNext();
-		while (it.hasNext()) {
-			QRegularExpressionMatch match = it.next();
-
-			int matchedGroup = match.lastCapturedIndex();
-			while (match.capturedTexts().at(matchedGroup).length() && --matchedGroup);
-
-			qDebug()
-				<< match.capturedTexts() << " - "
-				<< match.capturedView() << " - "
-				<< match.hasPartialMatch() << " - "
-				<< matchedGroup;
-			int nonMatechedEnd = match.capturedStart(0);
-			
-
-
-			int nonMatchedLength = nonMatechedEnd - nonMatchedStart;
-			//auto& ct = _coloredTextParts[match.lastCapturedIndex() - 1];
-			auto& ct = _coloredTextParts[0];
-			if (nonMatchedLength)
-				;// parts.push_back({ text.mid(nonMatchedStart, nonMatchedLength), nullptr });
-			parts.push_back({ text.mid(match.capturedStart(0), match.capturedLength(0)), match.lastCapturedIndex() });
-			nonMatchedStart = match.capturedEnd(0);
-		}
-		if (nonMatchedStart < text.length())
-			parts.push_back({ text.mid(nonMatchedStart), false });
-		return hasMatches;
-	};
-	{
-		Part::List parts;
-		QString text = "this is testing and test and Test and error 367 so on is";
-		
-		TextColorize tc{};
-		tc.caseSensitive = true;
-		tc.text = "test";
-		_coloredTextParts.push_back(tc);
-		tc.caseSensitive = false;
-		tc.text = "test";
-		_coloredTextParts.push_back(tc);
-		tc.caseSensitive = false;
-		tc.wordOnly = true;
-		tc.text = "is";
-		_coloredTextParts.push_back(tc);
-		tc.caseSensitive = false;	tc.wordOnly = true; 	tc.text = "ing";
-		_coloredTextParts.push_back(tc);
-		tc.caseSensitive = false;	tc.wordOnly = false; 	tc.text = "(error.*?\\d+)";
-		_coloredTextParts.push_back(tc);
-
-		match(text, parts);
-		qDebug() << parts;
-		return;
-	}
-	RowStyle rs;
-	QTableWidget tv;
-	tv.setRowCount(3);
-	tv.setColumnCount(4);
-	RowLayoutWidget rlw(nullptr, rs, tv.model()->index(0, 0));
-	rlw.show();
-	a.exec();
-	exit(0);
-	/*ColorPickerWidget colorPicker(nullptr);
-	colorPicker.show();
-	a.exec();*/
-	QMainWindow wnd;
-	QMyWidget myWidget(nullptr);
-	TextColorizerWidget tc(nullptr);
-	TextColorize::List list;
-	//TextColorize c{"text"};
-	//list.push_back(TextColorize{ "text1", QFont(), false, true, true, true, QColor(0xff00ff), QColor() });
-	//list.push_back(TextColorize{ "text2", QFont(), false, true, true, true, QColor(0xff00ff), QColor() });
-	while (true) {
-		tc.initialize(list);
-		tc.resize(500, tc.height());
-
-		/*if(tc.exec() == QDialog::Rejected)
-			break;*/
-		list = tc.colorizeList();
-	}
-	list = tc.colorizeList();
-	exit(0);
-	return;
-}
-int testing()
-{	
-	//new LogWindowTest();
-	LogFileModelTest().testGetData();
-	//LogStashModelTest().testGetData();
-	//LogFileModelTest().testGetData();
-
-	//WidgetTest::ColumnizerWidgetTest();
-	return 0;
-}
 #include <qstylefactory.h>
+#include <gui\ColorPickerWidget.h>
 void setTheme(QApplication& a)
 {
 	qApp->setStyle(QStyleFactory::create("Fusion"));
@@ -267,8 +115,17 @@ void setTheme(QApplication& a)
 	darkPalette.setColor(QPalette::HighlightedText, Qt::black);
 
 	qApp->setPalette(darkPalette);
-
+	
 	qApp->setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
+}
+
+void testing()
+{
+	qDebug() << appSettings().childGroups();
+	auto s = appSettings().logWindowTemplates("mytemplate");
+	SettingsDialog dlg;
+	dlg.exec();
+	exit(0);
 }
 int CALLBACK WinMain(
 	_In_ HINSTANCE hInstance,
@@ -276,22 +133,19 @@ int CALLBACK WinMain(
 	_In_ LPSTR     lpCmdLine,
 	_In_ int       nCmdShow)
 {
-	const QSettings::Format XmlFormat =
-		QSettings::registerFormat("xml", readXmlFile, writeXmlFile);
-
-	QSettings settings("test.ini", QSettings::Format::IniFormat);
-	settings.setDefaultFormat(XmlFormat);
+	
 	Settings::setOrganisation("ACOM");
 	Settings::setApplication("LogViewer");
 
-	//_putenv("QT_MESSAGE_PATTERN=\"[%{type}] %{appname} %{threadid} - %{message}\"");
+	_putenv("QT_MESSAGE_PATTERN=\"[%{type}] %{appname} %{threadid} - %{message}\"");
 	//_putenv("QT_FATAL_WARNINGS=");
 	qRegisterMetaTypeStreamOperators<ColorList>("ColorList");	
 	initLogging();
 
 	//QCoreApplication::addLibraryPath("c:/builds/logviewer/bin/debug/platforms");
-    QApplication a(__argc, __argv);
+    auto& a = *new QApplication(__argc, __argv);
 
+	
 	//Q_INIT_RESOURCE(default);
 	//setTheme(a);
 
@@ -300,31 +154,35 @@ int CALLBACK WinMain(
 	QString styleSheet = QLatin1String(file.readAll());
 	a.setStyleSheet(styleSheet);
 
-	LogUpdater::instance();
-	ObserverFile observeStyle;
-	observeStyle.createObserver(&a, "c:/builds/logviewer/default.css", [&a](const QString& id, int i) {
-		QFile file("default.css");
-		file.open(QFile::ReadOnly);
-		QString styleSheet = QLatin1String(file.readAll());
-		a.setStyleSheet(styleSheet);
-	});
+	//LogUpdater::instance();
+	//ObserverFile observeStyle;
+	//observeStyle.createObserver(&a, "c:/builds/logviewer/default.css", [&a](const QString& id, int i) {
+	//	QFile file("default.css");
+	//	file.open(QFile::ReadOnly);
+	//	QString styleSheet = QLatin1String(file.readAll());
+	//	a.setStyleSheet(styleSheet);
+	//});
 
-	QObject::connect(&observeStyle, &ObserverFile::observedObjectChanged, &a, [&a](const QString& id, int i) {
-		QFile file("default.css");
-		file.open(QFile::ReadOnly);
-		QString styleSheet = QLatin1String(file.readAll());
-		a.setStyleSheet(styleSheet);
-	});
-	playground(a);
-	testing();
+	//QObject::connect(&observeStyle, &ObserverFile::observedObjectChanged, &a, [&a](const QString& id, int i) {
+	//	QFile file("default.css");
+	//	file.open(QFile::ReadOnly);
+	//	QString styleSheet = QLatin1String(file.readAll());
+	//	a.setStyleSheet(styleSheet);
+	//});
+
 #ifdef _DEBUG
 	Logger::set_level(".*", Logger::Level::Trace);
 	Logger::set_level(".*common.*", Logger::Level::Warning);
 #endif	
 	log_trace(0) << "startup";
 
+ 
+	plugin_factory::Factory::LoadPlugins();
 
-    MainWindow::instance().show();
+	//testing();
+	//return 0;
+	MainWindow::instance().show();	
+	
     MainWindow::instance().readSettings();
     //QErrorMessage::qtHandler();
     return a.exec();

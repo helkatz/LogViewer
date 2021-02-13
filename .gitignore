@@ -1,1 +1,4 @@
 test/logs/
+.vscode
+assets
+build

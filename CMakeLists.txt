@@ -1,13 +1,28 @@
-include("c:/data/binaries/cmake/helper.cmake")
 cmake_minimum_required(VERSION 2.8)
 
 project(LogViewer)# VERSION 1.2.3.4 LANGUAGES C CXX)
 enable_testing()
 
-
 message(LogViewer)
-#add_package(${PROJECT_NAME} common 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/common/*/")
-#return()
+
+###########################################################
+# conan specific "header"
+###########################################################
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+   message(STATUS "Downloading conan.cmake from https://github.com/memsharded/cmake-conan")
+   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                 "${CMAKE_BINARY_DIR}/conan.cmake")
+endif()
+include(${CMAKE_BINARY_DIR}/conan.cmake)
+
+conan_cmake_run(CONANFILE conanfile.txt
+                BASIC_SETUP #UPDATE
+				BUILD missing)
+
+###########################################################
+# END conan specific "header"
+###########################################################
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 if(MSVC)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /MP /Zi /DEBUG")
@@ -17,64 +32,59 @@ else()
 	SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wall -std=c++1z -static-libstdc++ -Wno-error=unused -Wno-error=unused-variable -Wno-error=unused-but-set-variable -Wno-error=deprecated-declarations -Wno-deprecated")
 endif()
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+# Qt 
+SET(CMAKE_PREFIX_PATH "/qt/qt5.9.9/5.9.9/msvc2017_64")
 
-
-
-message(${PROJECT_SOURCE_DIR})
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+cmake_policy(SET CMP0020 NEW)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
-#file(GLOB_RECURSE sources forms/*)
-#file(GLOB_RECURSE sources languages/*)
-file(GLOB_RECURSE sources main/* languages/* forms/* utils/* assets/* models/*)
-
-#set(CMAKE_PREFIX_PATH C:/qt/5.9/5.9.1/msvc2015)
-#set(CMAKE_PREFIX_PATH C:/qt5/5.9.3/msvc2015)
-set(CMAKE_PREFIX_PATH C:/qt5/5.10.0/msvc2015)
-#set(CMAKE_PREFIX_PATH C:/qt/5.7/msvc2015)
-##file(GLOB_RECURSE ui_files *.ui)
-#find_package(Qt5)
+find_package(Qt5 COMPONENTS Widgets)
 find_package(Qt5Widgets)
 find_package(Qt5Sql)
 find_package(Qt5Network)
-#find_package(logger)
-#find_package(logger 1.0.0 CONFIG REQUIRED PATHS "c:/data/repos/binaries/internal/logger/*/")
+find_package(Qt5Svg)
+qt5_add_resources(RCC_SOURCES default.qrc)
+# message(${RCC_SOURCES})
+# add_executable(main ${RCC_SOURCES} ${sources})
+# Qt End
 
-include(/data/binaries/external/re2.cmake)
-include(/data/binaries/external/boost.cmake)
-#include(/data/binaries/external/poco.cmake)
-add_subdirectory(../logger ${CMAKE_BINARY_DIR}/logger)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-add_executable(LogViewer ${sources})
+MACRO(SOURCE_GROUP_BY_FOLDER source_files)
+  SET(SOURCE_GROUP_DELIMITER "/")
+  SET(last_dir "")
+  SET(files "")
+#  FOREACH(file ${${target}_SRC} ${${target}_HEADERS})
+  FOREACH(file ${${source_files}})
+    file(RELATIVE_PATH relative_file "${PROJECT_SOURCE_DIR}" ${file})
+    GET_FILENAME_COMPONENT(dir "${relative_file}" PATH)
+    IF (NOT "${dir}" STREQUAL "${last_dir}")
+      IF (files)
+        SOURCE_GROUP("${last_dir}" FILES ${files})
+      ENDIF (files)
+      SET(files "")
+    ENDIF (NOT "${dir}" STREQUAL "${last_dir}")
+    SET(files ${files} ${file})
+    SET(last_dir "${dir}")
+  ENDFOREACH(file)
+  IF (files)
+    SOURCE_GROUP("${last_dir}" FILES ${files})
+  ENDIF (files)
+ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
-SOURCE_GROUP_BY_FOLDER(sources)
+message(${PROJECT_SOURCE_DIR})
 
-target_include_directories(LogViewer PUBLIC main/include)
-target_include_directories(LogViewer PUBLIC .)
 
-target_link_libraries(LogViewer Qt5::Widgets Qt5::Sql Qt5::Network logger re2 boost PocoFoundation PocoNet)
 
-IF(WIN32) # Check if we are on Windows
-  if(MSVC) # Check if we are using the Visual Studio compiler
-    set_target_properties(LogViewer PROPERTIES 
-		LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS"
-		LINK_FLAGS_DEBUG "/SUBSYSTEM:WINDOWS")
-  elseif(CMAKE_COMPILER_IS_GNUCXX)
-    # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows") # Not tested
-  else()
-    message(SEND_ERROR "You are using an unsupported Windows compiler! (Not MSVC or GCC)")
-  endif()
-elseif(UNIX)
-  # Nothing special required
-else()
-  message(SEND_ERROR "You are on an unsupported platform! (Not Win32 or Unix)")
-ENDIF()
 
-set(Qt5_RUNTIME_LIBRARY_DIRS c:/qt/5.7/msvc2015/bin)
-#add_custom_command(COMMAND set "PATH=${Qt5_RUNTIME_LIBRARY_DIRS};%PATH%"
-#                   COMMAND TableGenerator "${CMAKE_CURRENT_BINARY_DIR}/Table.h"
-#                   DEPENDS TableGenerator
-#)
+#add_subdirectory(external)
+#add_subdirectory(../logger ${CMAKE_BINARY_DIR}/logger)
+add_subdirectory(common)
+# add_subdirectory(external)
+add_subdirectory(core)
+add_subdirectory(plugins)
+#add_subdirectory(comon_widgets)
+add_subdirectory(main)
+
 
