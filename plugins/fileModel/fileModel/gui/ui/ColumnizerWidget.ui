@@ -100,7 +100,7 @@
             </size>
            </property>
            <property name="editable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <property name="currentText">
             <string/>
@@ -108,22 +108,50 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="btnSave">
+          <widget class="QPushButton" name="renameColumnizer">
+           <property name="toolTip">
+            <string>rename</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="../../../../../assets/default.qrc">
+             <normaloff>:/assets/icons/icons8-edit-file-100.png</normaloff>:/assets/icons/icons8-edit-file-100.png</iconset>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="duplicateColumnizer">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="toolTip">
+            <string>duplicate</string>
+           </property>
            <property name="text">
-            <string>Save</string>
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="../../../../../assets/default.qrc">
+             <normaloff>:/assets/icons/icons8-new-copy-100.png</normaloff>:/assets/icons/icons8-new-copy-100.png</iconset>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="btnDelete">
+          <widget class="QPushButton" name="deleteColumnizer">
+           <property name="toolTip">
+            <string>remove</string>
+           </property>
            <property name="text">
-            <string>Delete</string>
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="../../../../../assets/default.qrc">
+             <normaloff>:/assets/icons/icons8-delete-document-100.png</normaloff>:/assets/icons/icons8-delete-document-100.png</iconset>
            </property>
           </widget>
          </item>
@@ -154,16 +182,44 @@
      <item row="2" column="0">
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <widget class="QPushButton" name="addPatternButton">
+        <widget class="QPushButton" name="insertPatternBelow">
+         <property name="toolTip">
+          <string>insert row below</string>
+         </property>
          <property name="text">
-          <string>Add Pattern</string>
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../../../../../assets/default.qrc">
+           <normaloff>:/assets/icons/icons8-insert-row-100.png</normaloff>:/assets/icons/icons8-insert-row-100.png</iconset>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="deletePatternButton">
+        <widget class="QPushButton" name="insertPatternAbove">
+         <property name="toolTip">
+          <string>insert row above</string>
+         </property>
          <property name="text">
-          <string>Delete Pattern</string>
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../../../../../assets/default.qrc">
+           <normaloff>:/assets/icons/icons8-insert-row-above-100.png</normaloff>:/assets/icons/icons8-insert-row-above-100.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="deletePattern">
+         <property name="toolTip">
+          <string>delete row</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../../../../../assets/default.qrc">
+           <normaloff>:/assets/icons/icons8-delete-row-100.png</normaloff>:/assets/icons/icons8-delete-row-100.png</iconset>
          </property>
         </widget>
        </item>
@@ -209,6 +265,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../../../../assets/default.qrc"/>
+ </resources>
  <connections/>
 </ui>

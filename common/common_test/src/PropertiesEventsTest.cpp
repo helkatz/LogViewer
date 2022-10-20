@@ -1,3 +1,4 @@
+#if 0
 #include "PropertiesTest.h"
 using namespace common;
 
@@ -51,3 +52,4 @@ TEST_F(PropertiesEventsTest, onPropertyNotAssigned)
 	setTestChangedBySetEventHandler("will be overritten by onSet handler");
 	ASSERT_EQ("changedBySetEventHandler", getTestChangedBySetEventHandler());
 }
+#endif

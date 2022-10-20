@@ -21,6 +21,7 @@ SETTINGSCLASS(LogFileSettings, PropClass,
 		)
 		PROP(QString, startPattern)
 		PROP(QString, subject)
+		PROP(QByteArray, patternTableState)
 		PROP(QByteArray, tableState)
 		_PROPLIST(Column, columns)
 	)

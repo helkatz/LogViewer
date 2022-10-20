@@ -1,5 +1,11 @@
 <RCC>
   <qresource prefix="/assets">
+    <file>icons/icons8-edit-file-100.png</file>
+    <file>icons/icons8-delete-document-100.png</file>
+    <file>icons/icons8-new-copy-100.png</file>
+    <file>icons/icons8-delete-row-100.png</file>
+    <file>icons/icons8-insert-row-100.png</file>
+    <file>icons/icons8-insert-row-above-100.png</file>
     <file>images/arrow_sans_down-256.png</file>
     <file>images/arrow_sans_up-256.png</file>
     <file>images/icon-close-128.png</file>

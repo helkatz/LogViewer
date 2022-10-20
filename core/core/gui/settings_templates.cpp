@@ -1,7 +1,7 @@
 #include <core/settings.h>
 #include <gui/settings_templates.h>
 #include <ui/ui_settings_templates.h>
-
+#include <gui/MainWindow.h>
 #include <qmdisubwindow.h>
 TemplatesWidget::TemplatesWidget(QWidget *parent) :
     QWidget(parent),
@@ -11,7 +11,7 @@ TemplatesWidget::TemplatesWidget(QWidget *parent) :
 
     connect(parent, SIGNAL(saveSettings()), this, SLOT(saveSettings()));
 //@TODO rework
-#if 0
+#if 1
     foreach (QMdiSubWindow *frame, MainWindow::instance().getArea().subWindowList()) {
         LogWindow *logView = qobject_cast<LogWindow *>(frame->widget());
         QVariant userData(QMetaType::QObjectStar, &logView);
@@ -54,7 +54,7 @@ void TemplatesWidget::loadSettings()
     ui->nameCombo->blockSignals(true);
     QString selectedName = ui->nameCombo->currentText();
     ui->nameCombo->clear();
-    ui->nameCombo->addItems(appSettings().logWindowTemplates().childGroups());
+    ui->nameCombo->addItems(appSettings().logWindowTemplates()->childGroups());
 
     if (selectedName.length()) {
         auto s = appSettings().logWindowTemplates(selectedName);

@@ -10,6 +10,16 @@
 #include "private.h"
 namespace logger {
 
+	std::vector<LoggerSettings> LoggerSettings::patternSettings;
+	std::atomic<unsigned __int64> LogStreamPrivate::id;
+	std::map<std::string, Logger*> LoggerPrivate::loggers;
+	std::vector<Logger::MessageHandler*> LoggerPrivate::messageHandlers;
+	std::mutex LoggerPrivate::loggers_mutex;
+	Logger& LoggerPrivate::rootLogger = Logger::get("ROOT");
+	LoggerCache<const char*> LoggerPrivate::lc[maxCache + 1];
+	ThreadLocal<bool> LoggerPrivate::join_mode;
+	ThreadLocal<std::vector<Message>> LoggerPrivate::joinedMessages;
+
 	thread_local int Logger::Indent::indent = 0;
 	const std::string& LogStream::delimiter()
 	{

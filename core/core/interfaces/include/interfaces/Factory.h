@@ -28,11 +28,11 @@ namespace plugin_factory
 			{ return category_; }
 		const QString& name() const 
 			{ return name_; }
-		virtual QObject* create(QObject *parent) = 0;
+		virtual QObject* create(QWidget*parent) = 0;
 		virtual const type_info& type() const = 0;
 
 		template<typename T>
-		T create(const QObject *parent)
+		T create(const QWidget *parent)
 		{
 			return qobjectcast<T>(create(parent));
 		}
@@ -47,9 +47,9 @@ namespace plugin_factory
 	struct Creator: public CreatorBase
 	{
 		using CreatorBase::CreatorBase;
-		QObject* create(QObject *parent) override
+		QObject* create(QWidget*parent) override
 		{
-			QObject *object = new T(nullptr);
+			QObject *object = new T(parent);
 			//CreatorBase* ret;
 			//return ret;
 			return object;
@@ -76,14 +76,14 @@ namespace plugin_factory
 			registered_ << QSharedPointer<CreatorBase>(new Creator<T>{ category, name });
 		}
 
-		static QList<CreatorBase *>  Get(const QString& category, QVariant name = QVariant{})
+		static QList<CreatorBase *>  Get(const QString& category, const QString& name = QString{})
 		{
 			QList<CreatorBase *> ret;
 			for (auto& creator : registered_) {
 				QRegularExpression re(QString("^%1(\\..*|$)").arg(category));
 				if (re.match(creator->category()).hasMatch() == false)
 					continue;
-				if (!name.isNull() && name.toString() != creator->name())
+				if (!name.isEmpty() && name != creator->name())
 					continue;
 				ret.push_back(creator.data());
 			}
@@ -102,7 +102,7 @@ namespace plugin_factory
 		}
 
 		template<typename T>
-		static T Create(const QString& category, const QString& name, QObject *parent)
+		static T Create(const QString& category, const QString& name, QWidget *parent)
 		{
 			auto creator = Get(category, name);
 			if (creator.size() == 0)

@@ -78,7 +78,7 @@ namespace parser_json {
 			using ascii::char_;
 
 			start = value_rule.alias();
-			object_rule = '{' >> pair_rule[boost::bind(&print, _1)] % ',' >> '}';
+			object_rule = '{' >> pair_rule % ',' >> '}';
 			pair_rule = string_rule >> ':' >> value_rule;
 			value_rule = object_rule | array_rule | string_rule | nullptr_ | double_ | bool_;
 			array_rule = '[' >> value_rule % ',' >> ']';

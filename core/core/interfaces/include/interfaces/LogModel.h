@@ -15,44 +15,6 @@
 typedef std::unordered_map<uint32_t, QSqlRecord> DataCache;
 
 using QueryParams = _settings::QueryParams;
-//class CORE_API QueryParams: public Properties
-//{
-//	;
-//public:
-//	QString settingsPath() const;
-//	PROPERTY(QueryParams, QString, connection)
-//    PROPERTY(QueryParams, QString, modelClass)
-//    PROPERTY(QueryParams, QString, queryString)
-//    PROPERTY(QueryParams, quint64, fromTime, 0)
-//    PROPERTY(QueryParams, quint64, toTime, std::numeric_limits<uint32_t>::max() * 1000ull)
-//    PROPERTY(QueryParams, uint32_t, limit)
-//
-//protected:
-//	
-//public:
-//	QueryParams(const QString& settingsPath);
-//	QueryParams() = default;
-//	virtual ~QueryParams() = default;
-//	void writeSettings(_settings::QueryParams&);
-//	void readSettings(_settings::QueryParams&);
-//	template<typename Derived> 
-//	Derived as()
-//	{
-//		Derived derived;
-//		derived._hive = _hive;
-//		derived.settingsPath_ = settingsPath_;
-//		return derived;
-//	}
-//
-//	template<typename Derived>
-//	const Derived as() const
-//	{
-//		return const_cast<QueryParams*>(this)->as<Derived>();
-//		Derived derived;
-//		derived._hive = _hive;
-//		return derived;
-//	}
-//};
 
 class Observer : public QThread
 {
@@ -125,9 +87,9 @@ public:
 
 	virtual QString getTitle() const = 0;
 
-    virtual void writeSettings(_settings::QueryParams&);
+    virtual void writeSettings(_settings::LogWindow&);
 
-    virtual void readSettings(_settings::QueryParams&);
+    virtual void readSettings(_settings::LogWindow&);
 
     virtual bool query() = 0;
 

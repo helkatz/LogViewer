@@ -282,7 +282,7 @@ void LogView::writeSettings(_settings::LogWindow& s)
 
 	LogModel *logModel = qobject_cast<LogModel *>(model());
 	if(logModel) {
-		logModel->writeSettings(s.queryParams());
+		logModel->writeSettings(s);
 	}
 
 }

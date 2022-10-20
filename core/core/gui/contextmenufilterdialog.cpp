@@ -27,7 +27,7 @@ void ContextMenuFilterDialog::on_cbFilter_currentIndexChanged(const QString &arg
 void ContextMenuFilterDialog::loadFilter()
 {
     ui->cbFilter->clear();
-    ui->cbFilter->addItems(appSettings().filters().childGroups());// .childGroups("filters"));
+    ui->cbFilter->addItems(appSettings().filters()->childGroups());// .childGroups("filters"));
 }
 
 void ContextMenuFilterDialog::on_btnFilterSave_clicked()
@@ -44,7 +44,7 @@ void ContextMenuFilterDialog::on_btnFilterRemove_clicked()
 {
     QString name = ui->cbFilter->currentText();
     if(name.length()) {
-        appSettings().filters(name).remove();
+        appSettings().filters(name)->remove();
     }
 }
 

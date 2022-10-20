@@ -1,4 +1,4 @@
-
+#if 0
 #include <gtest/gtest.h>
 #include "PropertiesTest.h"
 #include <Poco/DateTimeFormatter.h>
@@ -67,3 +67,4 @@ DTEST_F(PropertiesTest, dump)
 	cout << InnerList();
 	cout << *this;
 }
+#endif

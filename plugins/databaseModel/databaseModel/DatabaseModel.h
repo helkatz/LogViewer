@@ -33,13 +33,11 @@ public:
 
 };
 
-class DatabaseQueryParams: public QueryParams
-{
-public:
-    PROPERTY(DatabaseQueryParams, QString, database)
-    PROPERTY(DatabaseQueryParams, QString, tableName)
-    PROPERTY(DatabaseQueryParams, QString, connectionName)
-};
+SETTINGSCLASS(DatabaseQueryParams, QueryParams,
+    PROP(QString, database)
+    PROP(QString, tableName)
+    PROP(QString, connectionName)
+);
 
 class LogDatabaseModel : public LogModel
 {
@@ -56,11 +54,7 @@ protected:
 
     QSqlField _autoincCol;
 
-
-	DatabaseQueryParams qp() { return qp_.as< DatabaseQueryParams>(); }
-    const DatabaseQueryParams qp() const { return qp_.as<DatabaseQueryParams>(); }
-    //   const DatabaseQueryParams& qp() const
- //       { return dynamic_cast<const DatabaseQueryParams&>(qc_); }
+    quint64 getMaxId();
 
 	CurrentRow& loadData(quint64 index) const override;
 public:

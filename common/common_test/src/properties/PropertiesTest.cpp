@@ -1,3 +1,4 @@
+#if 0
 #include <common/properties/Properties.h>
 #include <Poco/Data/Session.h>
 #include <gtest/gtest.h>
@@ -371,3 +372,4 @@ TEST(DISABLED_PropertiesTest_2_0, Poco_Data)
 		ASSERT_EQ(1, data.intVarRO);
 	}
 }
+#endif

@@ -31,8 +31,8 @@ void Columnizer::loadAll()
 	if (_columnizers.length())
 		return;
 
-	auto s = appSettings().as<LogFileSettings>();
-	foreach(const QString& name, s.columnizers().childGroups()) {
+	auto s = appSettings()->as<LogFileSettings>();
+	foreach(const QString& name, s.columnizers()->childGroups()) {
 		loadOne(name);
 	}
 
@@ -66,7 +66,7 @@ Columnizer::List Columnizer::find(common::File& file)
 void Columnizer::loadOne(const QString& name)
 {
 	//LogFileSettings settings;
-	auto settings = appSettings().as<LogFileSettings>();
+	auto settings = appSettings()->as<LogFileSettings>();
 	auto found = std::find_if(_columnizers.begin(), _columnizers.end(), [&name](const Columnizer& c) {
 		return c.name == name.toStdString();
 		});
@@ -80,7 +80,7 @@ void Columnizer::loadOne(const QString& name)
 	}
 
 	columnizer->name = name.toStdString();
-	foreach(const QString& col, settings.columnizers(name).columns().childGroups())
+	foreach(const QString& col, settings.columnizers(name).columns()->childGroups())
 	{
 		auto s = settings.columnizers(name).columns(col);
 		// when not set then set it with the first field pattern
@@ -90,6 +90,7 @@ void Columnizer::loadOne(const QString& name)
 			continue;
 		columnizer->columnNames.push_back(s.name());
 		columnizer->pattern += s.pattern().toStdString();
+		columnizer->lastPattern = s.pattern().toStdString();
 		QRegularExpression re("(^.*?)\\((.*?)\\)(.*)");
 		QString searchPattern = s.pattern();
 		searchPattern.replace(re, QString("\\1(COLUMNNAME_%1)\\3").arg(s.name()));

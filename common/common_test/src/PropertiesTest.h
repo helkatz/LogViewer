@@ -1,3 +1,4 @@
+#if 0
 #pragma once
 #include <gtest/gtest.h>
 
@@ -65,3 +66,4 @@ struct TestStruct : public common::Properties < TestStruct >
 	// declare some lower camel case Properties getter public and setter protected
 	PROPERTY_LCC_PUBL_PROT(std::string, StringProp_SetProtected, "Test");
 };
+#endif

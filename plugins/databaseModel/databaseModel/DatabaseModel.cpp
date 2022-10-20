@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QCryptographicHash>
 #include <QSqlError>
+#include <QSqlDriver>
 #include <QStringBuilder>
 
 #include "SqlQuery.h"
@@ -115,7 +116,7 @@ void LogDatabaseModel::reportError(const QString& message)
 
 void LogDatabaseModel::observedObjectChanged(const QString &id, int maxId)
 {
-    //if(id == ObserverTable::createId(qp().connectionName(), qp().tableName())) {
+    //if(id == ObserverTable::createId(qp.connectionName(), qp.tableName())) {
     //    updateQuery(maxId);
     //    emit layoutChanged();
     //    emit dataChanged();
@@ -160,16 +161,18 @@ QVariant LogDatabaseModel::data(int row, int col, int role) const
 
 bool LogDatabaseModel::queryWithCondition(QString sqlFilter, int limit)
 {
-    qp().queryString(sqlFilter);
-    qp().limit(limit);
+    auto qp = qp_->as<DatabaseQueryParams>();
+    qp.queryString(sqlFilter);
+    qp.limit(limit);
     return query();
 }
 
 void LogDatabaseModel::updateQuery(int maxId)
 {
+    auto qp = qp_->as<DatabaseQueryParams>();
     //qDebug()<<"updateQuery";
     if(_updateQuery.length()) {
-        int limit = qp().limit();
+        int limit = qp.limit();
         int toPos = maxId;
         int fromPos = _fromPos;
         int inserted = 0;
@@ -195,21 +198,34 @@ void LogDatabaseModel::updateQuery(int maxId)
         _fromPos = maxId + 1;
     }
     _sqlQuery->exec(_queryCount);
+    //qDebug() << "  "<<_sqlQuery->lastError().text();
     if(_sqlQuery->first()) {
-        _rows = _sqlQuery->value("Rows").toInt();
+        _rows = _sqlQuery->value("rows").toInt();
     };
     //qDebug()<<"  rows="<<_rows;
 
     _sqlQuery->finish();
 }
 
+quint64 LogDatabaseModel::getMaxId() {
+    auto qp = qp_->as<DatabaseQueryParams>();
+    int maxId;
+    _sqlQuery->exec(QString("select max(`%1`) as id from %2")
+        .arg(_autoincCol.name())
+        .arg(qp.tableName()));
+    if (_sqlQuery->first())
+        maxId = _sqlQuery->value("id").toInt();
+    _sqlQuery->finish();
+    return maxId;
+}
 bool LogDatabaseModel::query()
 {
+    auto qp = qp_->as<DatabaseQueryParams>();
     //setQueryConditions(queryConditions);
     _dataCache.clear();
     
     QSqlDatabase db;
-    db = helper::getDatabase(qp().connectionName());
+    db = helper::getDatabase(qp.connectionName());
 	db = helper::cloneDatabase(db);
     //qDebug() << "now open db";
     if (!db.open()) {
@@ -227,7 +243,7 @@ bool LogDatabaseModel::query()
     };
     try {
         _updateQuery = "";
-        _columnsInformation = db.record(qp().tableName());
+        _columnsInformation = db.record(qp.tableName());
         _queryFields = "";
         // build fields and find autoincrement column
         for(int col = 0; col < _columnsInformation.count(); col++) {
@@ -240,24 +256,19 @@ bool LogDatabaseModel::query()
         }
         _queryFields = _queryFields.mid(1);
         if(_autoincCol.name().length() == 0) {
-            qDebug()<<"autoincrement field missed in table "<<qp().tableName()<<" fields="<<_queryFields;
-            QMessageBox::critical(0, tr("error"), tr("autoincrement field missed in table %1").arg(qp().tableName()));
+            qDebug()<<"autoincrement field missed in table "<<qp.tableName()<<" fields="<<_queryFields;
+            QMessageBox::critical(0, tr("error"), tr("autoincrement field missed in table %1").arg(qp.tableName()));
             return false;
             //throw std::exception("invalid table format there must be an auto_increment column");
         }
-        // select last entry and set to _maxId
-        _sqlQuery->exec(QString("select max(`%1`) as id from %2")
-            .arg(_autoincCol.name())
-            .arg(qp().tableName()));
-        if(_sqlQuery->first())
-            _maxId = _sqlQuery->value("id").toInt();
-        _sqlQuery->finish();
+
+        _maxId = getMaxId();
 
         static int tmpid = 0;
-        QString logtmp = qp().tableName();
+        QString logtmp = qp.tableName();
 
         // when we have special query conditions then we create a tmp log table
-        if(qp().queryString().length() != 0) {
+        if(qp.queryString().length() != 0) {
             logtmp = QString("logtmp%1").arg(tmpid++);
             QString sql;
             if (db.driverName() == "QMYSQL") {
@@ -285,23 +296,23 @@ bool LogDatabaseModel::query()
                 select null as %1, syslog.%1 as syslog_id \
                     from %2 as syslog where (%3) and syslog.%1>=%#1 and syslog.%1<=%#2")
                 .arg(_autoincCol.name())
-                .arg(qp().tableName())
-                .arg(qp().queryString())
+                .arg(qp.tableName())
+                .arg(qp.queryString())
                 .arg(logtmp)
                 .replace("%#", "%");
             if(false /*qc.limit > 0 think about*/)
-                _updateQuery += QString(" limit %1").arg(qp().limit());
+                _updateQuery += QString(" limit %1").arg(qp.limit());
             //db.exec(QString(_updateQuery);
             //qDebug() << sql<<db.lastError().text();
             _queryFrom = QString("%3 as logtmp inner join %1 as syslog on syslog.%2 = logtmp.syslog_id")
-                    .arg(qp().tableName()).arg(_autoincCol.name()).arg(logtmp);
+                    .arg(qp.tableName()).arg(_autoincCol.name()).arg(logtmp);
 
         } else {
-            _queryFrom = qp().tableName() + " as logtmp";
+            _queryFrom = qp.tableName() + " as logtmp";
         }
 
         _queryCount = QString("\
-            select count(*) as Rows \
+            select count(*) as `rows` \
             from %2 as logtmp").arg(logtmp);
 
         _query = QString("\
@@ -315,9 +326,14 @@ bool LogDatabaseModel::query()
 
 
         observer_.install(std::chrono::milliseconds{ 1000 }, [this] {
-
-            });
-
+            auto newMaxId = getMaxId();
+            if (newMaxId != _maxId) {
+                _maxId = newMaxId;
+                updateQuery(_maxId);
+                emit layoutChanged();
+            }
+        });
+        observer_.run();
         emit layoutChanged();
     } catch(std::exception e) {
         QMessageBox::critical(NULL, tr(""), e.what());
@@ -329,9 +345,10 @@ bool LogDatabaseModel::query()
 
 QString LogDatabaseModel::getTitle() const
 {
-    QString title = qp().connectionName() + "/" + qp().tableName();
-    if(qp().queryString().length())
-        title += "/" + qp().queryString();
+    auto qp = qp_->as<DatabaseQueryParams>();
+    QString title = qp.connectionName() + "/" + qp.tableName();
+    if(qp.queryString().length())
+        title += "/" + qp.queryString();
     return title;
 }
 
@@ -360,9 +377,21 @@ QModelIndex LogDatabaseModel::find(const QModelIndex& fromIndex, const QStringLi
     qDebug() << "find fromPos:" << fromIndex.row() << "dir:" << down << "where:" << search;
     QString sql;
     QModelIndex index;
+
+    QString sqlWhere;
+    
+    for (auto& column : columns) {
+        QSqlField f(QLatin1String(""), QVariant::String);
+        
+        f.setValue(search);
+        auto escapedValue = _sqlQuery->driver()->formatValue(f);
+        sqlWhere += " AND `column` regexp '" + escapedValue + "'";
+    }
     if(down) {
         sql =  QString(_query).arg(fromIndex.row() + 2).arg(rowCount());
-        sql += " and (" + search + ") limit 1";
+        sql += sqlWhere;
+        sql += " LIMIT 1";
+        //sql += " and (" + search + ") limit 1";
 
 		_sqlQuery->exec(sql);
 		if (_sqlQuery->next())

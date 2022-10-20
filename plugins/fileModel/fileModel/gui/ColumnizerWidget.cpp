@@ -13,14 +13,71 @@
 #include <sstream>
 #include <ctime>
 #include <iomanip>
+#include <boost/regex.hpp>
+class RecursivGuard;
+class RecursivHold {
+	int recursive_;
+	friend RecursivGuard;
+public:
+	RecursivHold() : recursive_(0) {}
+};
+class RecursivGuard {
+	RecursivHold& recursiveHold_;
+public:
+	RecursivGuard(RecursivHold& recursivHold) :
+		recursiveHold_(recursivHold)
+	{
+		recursiveHold_.recursive_++;
+	}
+	~RecursivGuard() {
+		recursiveHold_.recursive_--;
+	}
+
+	void onTeardown(std::function<void()> fn)
+	{
+		fn();
+	}
+
+	bool isRecursive() const
+	{
+		return recursiveHold_.recursive_ > 1;
+	}
+};
+
+class BlockSignalGuard
+{
+	static QMap<QObject*, int> objects_;
+	std::initializer_list<QObject*> os_;
+public:
+	BlockSignalGuard(std::initializer_list<QObject*> os)
+		: os_(os)
+	{
+		for (auto& o : os_) {
+			objects_[o]++;
+			if (objects_[o] == 1)
+				o->blockSignals(true);
+		}
+	}
+
+	~BlockSignalGuard()
+	{
+		for (auto& o : os_) {
+			objects_[o]--;
+			if (objects_[o] == 0)
+				o->blockSignals(false);
+		}
+	}
+};
+QMap<QObject*, int> BlockSignalGuard::objects_;
 
 ColumnizerWidget::ColumnizerWidget(QWidget *parent) :
 	QWidget(parent),
 	ui(new Ui::ColumnizerWidget)
 {
 	ui->setupUi(this);
-	ui->deletePatternButton->setEnabled(false);
-	ui->cbName->lineEdit()->setPlaceholderText("enter a name and press save");
+	ui->deletePattern->setEnabled(false);
+	ui->insertPatternBelow->setEnabled(true);
+	//ui->cbName->lineEdit()->setPlaceholderText("enter a name and press save");
 
 	QStringList headers;
 	headers << "Name" << "Pattern" << "Show" << "Fmt" << "From" << "To";
@@ -32,71 +89,14 @@ ColumnizerWidget::ColumnizerWidget(QWidget *parent) :
 	ui->tableWidget->horizontalHeader()->setStretchLastSection(true);
 
 	connect(parent, SIGNAL(saveSettings()), this, SLOT(saveSettings()));
-
-	loadSettings();
+	appSettings()->bind(settings);
+	//settings->unbind();
+	ddx(true);
 }
 
 void ColumnizerWidget::saveSettings()
 {
-	if (ui->cbName->signalsBlocked())
-		return;
-    QString name = ui->cbName->currentText();
-	int col = 0;
-    if(name.length() > 0) {
-		auto s = settings.columnizers(name);
-		s.subject(ui->editSubject->toPlainText());
-		s.columns().remove();
-		for (int row = 0; row < ui->tableWidget->rowCount(); row++)
-		{			
-			auto r = getPatternRow(row);
-			s.columns(col).name(r.fieldName);
-			s.columns(col).pattern(r.pattern);
-			s.columns(col).enabled(r.enabled);
-			s.columns(col).fmtFunc(r.fmtFunc);
-			s.columns(col).fmtFrom(r.fmtFrom);
-			s.columns(col).fmtTo(r.fmtTo);
-			col++;
-		}
-		s.tableState(ui->tablePreview->horizontalHeader()->saveState());
-    }
-}
-
-void ColumnizerWidget::loadSettings()
-{	
-	auto settings = appSettings().as<LogFileSettings>();
-	ui->cbName->blockSignals(true);
-	removePatternRows();
-	auto selectIndex = ui->cbName->currentIndex();
-	ui->cbName->clear();
-	ui->cbName->addItems(settings.columnizers().childGroups());
-
-	if (ui->cbName->count() == 0)
-		return;
-	if (selectIndex == -1) {
-		selectIndex = 0;
-	}
-
-	ui->cbName->setCurrentIndex(selectIndex);
-	auto selectedName = ui->cbName->currentText();
-	
-	if (selectedName.length()) {
-		auto s = settings.columnizers(selectedName);
-		ui->editSubject->setPlainText(s.subject());
-		foreach(const QString & col, s.columns().childGroups()) {
-			PatternRow r;
-			r.fieldName = s.columns(col).name();
-			r.pattern = s.columns(col).pattern();
-			r.enabled = s.columns(col).enabled();
-			r.fmtFunc = s.columns(col).fmtFunc();
-			r.fmtFrom = s.columns(col).fmtFrom();
-			r.fmtTo = s.columns(col).fmtTo();
-			addPatternRow(ui->tableWidget->rowCount(), r);
-		}
-		ui->tablePreview->horizontalHeader()->restoreState(s.tableState());
-	}
-	
-	updatePreview();
-	ui->cbName->blockSignals(false);
+	appSettings()->set(settings);
 }
 
 //#define WIDGET QLineEdit
@@ -117,6 +117,8 @@ public:
 		for (int row = 0; row < tableWidget_->rowCount(); row++) {
 			for (int col = 0; col < tableWidget_->columnCount(); col++) {
 				if (tableWidget_->cellWidget(row, col) == this) {
+
+					//tableWidget_->setCurrentIndex(index);
 					tableWidget_->selectRow(row);
 					tableWidget_->selectColumn(col);
 				}
@@ -128,33 +130,35 @@ public:
 	}
 };
 
-void ColumnizerWidget::addPatternRow(int row, const PatternRow& r)
+void ColumnizerWidget::addPatternRow(int row, const LogFileSettings::Columnizer::Column& r)
 {
 	QString css = "QWidget { border:0px solid black}";
 	ui->tableWidget->blockSignals(true);
-	ui->deletePatternButton->setEnabled(true);
+	ui->deletePattern->setEnabled(true);
+
+	if (row == -1) {
+		row = ui->tableWidget->rowCount();
+	}
+
 	ui->tableWidget->insertRow(row);
-	
-	//auto row = ui->tableWidget->rowCount() - 1;
 
 	auto *editFieldName = new TableCellWidgetHook<QLineEdit>(ui->tableWidget);
 	ui->tableWidget->setCellWidget(row, 0, editFieldName);
 	ui->tableWidget->setColumnWidth(0, 50);
 	editFieldName->setObjectName(QStringLiteral("editFieldName"));
-	editFieldName->setText(r.fieldName);
+	editFieldName->setText(r.name());
 	editFieldName->setStyleSheet(css);
 	
-
 	QLineEdit *editPattern = new TableCellWidgetHook<QLineEdit>(ui->tableWidget);
 	ui->tableWidget->setCellWidget(row, 1, editPattern);
 	editPattern->setObjectName(QStringLiteral("editPattern"));
-	editPattern->setText(r.pattern);
+	editPattern->setText(r.pattern());
 	editPattern->setStyleSheet(css);
 	
 	QCheckBox *cbEnabled = new TableCellWidgetHook<QCheckBox>(ui->tableWidget);
 	ui->tableWidget->setCellWidget(row, 2, cbEnabled);
 	cbEnabled->setObjectName(QStringLiteral("cbEnabled"));
-	cbEnabled->setChecked(r.enabled);
+	cbEnabled->setChecked(r.enabled());
 	cbEnabled->setStyleSheet(css);
 	ui->tableWidget->setColumnWidth(2, 20);
 
@@ -165,20 +169,20 @@ void ColumnizerWidget::addPatternRow(int row, const PatternRow& r)
 	cbFmtFunc->addItem("DateTime");
 	cbFmtFunc->addItem("strptime");
 	cbFmtFunc->addItem("Regex");
-	cbFmtFunc->setCurrentText(r.fmtFunc);
+	cbFmtFunc->setCurrentText(r.fmtFunc());
 	cbFmtFunc->setStyleSheet(css);
 
 	QLineEdit *editFmtFrom = new TableCellWidgetHook<QLineEdit>(ui->tableWidget);
 	//ui->tableWidget->setTabOrder()
 	ui->tableWidget->setCellWidget(row, 4, editFmtFrom);
 	editFmtFrom->setObjectName(QStringLiteral("editFmtFrom"));
-	editFmtFrom->setText(r.fmtFrom);
+	editFmtFrom->setText(r.fmtFrom());
 	editFmtFrom->setStyleSheet(css);
 
 	QLineEdit *editFmtTo = new TableCellWidgetHook<QLineEdit>(ui->tableWidget);
 	ui->tableWidget->setCellWidget(row, 5, editFmtTo);
 	editFmtTo->setObjectName(QStringLiteral("editFmtTo"));
-	editFmtTo->setText(r.fmtTo);
+	editFmtTo->setText(r.fmtTo());
 	editFmtTo->setStyleSheet(css);
 
 	ui->tableWidget->blockSignals(false);
@@ -187,9 +191,18 @@ void ColumnizerWidget::addPatternRow(int row, const PatternRow& r)
 	connect(cbFmtFunc, SIGNAL(currentIndexChanged(QString)), this, SLOT(patternChanged(QString)));
 	connect(editFmtFrom, SIGNAL(textChanged(QString)), this, SLOT(patternChanged(QString)));
 	connect(editFmtTo, SIGNAL(textChanged(QString)), this, SLOT(patternChanged(QString)));
-	connect(cbEnabled, SIGNAL(toggled(bool)), this, SLOT(on_cbEnabled_toggle(bool)));
-
-
+	//connect(cbEnabled, SIGNAL(toggled(bool)), this, SLOT(on_cbEnabled_toggle(bool)));
+	connect(cbEnabled, &QCheckBox::toggled, [this](bool) { 
+		ddx(false); 
+	});
+	connect(ui->tableWidget->horizontalHeader(), &QHeaderView::sectionResized, this, [this]() {
+		ddx(false);
+	});
+	connect(ui->tableWidget, &QTableWidget::currentCellChanged, [this](int currentRow, int currentColumn, int previousRow, int previousColumn)->void {
+		if (currentRow != previousRow) {
+			//ddx(false);
+		}
+	});
 	connect(ui->tableWidget, &QTableWidget::cellClicked, this, [](int row, int col)->void {
 		qDebug() << "Clicked: " << row << "," << col;
 		});
@@ -199,28 +212,81 @@ void ColumnizerWidget::addPatternRow(int row, const PatternRow& r)
 }
 void ColumnizerWidget::on_cbEnabled_toggle(bool)
 {
-	patternChanged("");
+	ddx(false);
 }
 
-ColumnizerWidget::PatternRow ColumnizerWidget::getPatternRow(int row)
+void ColumnizerWidget::ddx(bool ddxMemberToComponent)
 {
-	PatternRow r;
+	static RecursivHold recursivHold;
+	RecursivGuard guard(recursivHold);
+	if(guard.isRecursive())
+		return;
+
+	BlockSignalGuard blockSignals({ ui->cbName });
+
+	//auto selectedPattern = ui->tableWidget->currentColumn();
+	//ui->tableWidget->selectRow(selectedPattern);
+
+	if (ddxMemberToComponent) {
+		auto selectIndex = ui->cbName->currentIndex();
+		ui->cbName->clear();
+		ui->cbName->addItems(settings.columnizers()->childGroups());
+
+		if (ui->cbName->count() == 0)
+			return;
+		if (selectIndex == -1) {
+			selectIndex = 0;
+		}
+		ui->cbName->setCurrentIndex(selectIndex);
+		auto selectedName = ui->cbName->currentText();
+
+		removePatternRows();
+		auto s = settings.columnizers(selectedName);
+		ui->editSubject->setPlainText(s.subject());
+		foreach(const QString & col, s.columns()->childGroups()) {
+			addPatternRow(ui->tableWidget->rowCount(), s.columns(col));
+		}
+		ui->tableWidget->horizontalHeader()->restoreState(s.patternTableState());
+		ui->tablePreview->horizontalHeader()->restoreState(s.tableState());
+	}
+	else {
+		
+		auto selectedName = ui->cbName->currentText();
+		if (selectedName.length() == 0)
+			return;
+		auto s = settings.columnizers(selectedName);
+		s.subject(ui->editSubject->toPlainText());
+		s.columns()->remove();
+
+		int col = 0;
+		for (int row = 0; row < ui->tableWidget->rowCount(); row++) {
+			s.columns(col)->set(getPatternRow(row));
+			col++;
+		}
+		s.patternTableState(ui->tableWidget->horizontalHeader()->saveState());
+		s.tableState(ui->tablePreview->horizontalHeader()->saveState());
+	}
+	updatePreview();
+}
+
+LogFileSettings::Columnizer::Column ColumnizerWidget::getPatternRow(int row)
+{
+	LogFileSettings::Columnizer::Column r;
 	if (ui->tableWidget->cellWidget(row, ui->tableWidget->columnCount() - 1) == nullptr)
-		return PatternRow();
-	r.fieldName = qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 0))->text();
-	r.pattern = qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 1))->text();
-	r.enabled = qobject_cast<QCheckBox *>(ui->tableWidget->cellWidget(row, 2))->isChecked();
-	r.fmtFunc = qobject_cast<QComboBox *>(ui->tableWidget->cellWidget(row, 3))->currentText();
-	r.fmtFrom = qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 4))->text();
-	r.fmtTo = qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 5))->text();
+		return LogFileSettings::Columnizer::Column();
+	r.name(qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 0))->text());
+	r.pattern(qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 1))->text());
+	r.enabled(qobject_cast<QCheckBox *>(ui->tableWidget->cellWidget(row, 2))->isChecked());
+	r.fmtFunc(qobject_cast<QComboBox *>(ui->tableWidget->cellWidget(row, 3))->currentText());
+	r.fmtFrom(qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 4))->text());
+	r.fmtTo(qobject_cast<QLineEdit *>(ui->tableWidget->cellWidget(row, 5))->text());
 	return r;
 }
+
 void ColumnizerWidget::removePatternRow(int row)
 {
 	ui->tableWidget->removeRow(row);
 	ui->tablePreview->removeColumn(row);
-	ui->deletePatternButton->setEnabled(ui->tableWidget->rowCount() > 0);
-	saveSettings();
 }
 
 void ColumnizerWidget::removePatternRows()
@@ -230,10 +296,15 @@ void ColumnizerWidget::removePatternRows()
 	}
 }
 
+void ColumnizerWidget::updateButtons()
+{
+	auto selectedPattern = ui->tableWidget->currentColumn();
+	ui->deletePattern->setEnabled(selectedPattern >= 0);
+	ui->insertPatternAbove->setEnabled(selectedPattern >= 0);
+}
+
 void ColumnizerWidget::updatePreview()
 {
-	saveSettings();
-	//qDebug() << sender() << pattern;
 	auto savedState = ui->tablePreview->horizontalHeader()->saveState();
 
 	while (ui->tablePreview->rowCount())
@@ -243,12 +314,12 @@ void ColumnizerWidget::updatePreview()
 
 	QString pattern;
 	for (int row = 0; row < ui->tableWidget->rowCount(); row++) {
-		PatternRow r = getPatternRow(row);
-		pattern += r.pattern;
+		auto r = getPatternRow(row);
+		pattern += r.pattern();
 		/*ui->tablePreview->horizontalHeader()->setSectionResizeMode(row, QHeaderView::Stretch);
 		if (row > 0)
 			ui->tablePreview->horizontalHeader()->setSectionResizeMode(row - 1, QHeaderView::Custom);*/
-		ui->tablePreview->setHorizontalHeaderItem(row, new QTableWidgetItem(r.fieldName));
+		ui->tablePreview->setHorizontalHeaderItem(row, new QTableWidgetItem(r.name()));
 		//ui->tablePreview->horizontalHeader()->setStretchLastSection(true);
 	}
 	ui->tablePreview->horizontalHeader()->restoreState(savedState);
@@ -262,7 +333,17 @@ void ColumnizerWidget::updatePreview()
 		| QRegularExpression::MultilineOption
 		//|QRegularExpression::InvertedGreedinessOption
 	);
-
+	boost::regex bre(pattern.toStdString());
+	boost::cmatch bm;
+	auto s = ui->editSubject->toPlainText().toStdString();
+	if (boost::regex_match(s.c_str(), bm, bre)) {
+		for (int i = 0; i < bm.size(); i++) {
+			std::string sm; 
+			sm = bm[i].first;
+			sm = bm[i].second;
+		}
+		
+	}
 	QString sampleLines = ui->editSubject->toPlainText();
 	QRegularExpression reLines("(.*[^\\n])");
 	auto mLines = reLines.globalMatch(ui->editSubject->toPlainText());
@@ -283,36 +364,36 @@ void ColumnizerWidget::updatePreview()
 				sampleEntries.back().back() += "\n" + line;
 		}
 	}
+
 	ui->tablePreview->setRowCount(sampleEntries.size());
 	int previewRow = 0;
 	ui->tablePreview->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-	foreach(const QStringList& sampleEntry, sampleEntries)
-	{
+	foreach(const QStringList& sampleEntry, sampleEntries) {
 		ui->tablePreview->verticalHeader()->setSectionResizeMode(previewRow, QHeaderView::ResizeToContents);
 		for (int patternRow = 0; patternRow < ui->tableWidget->rowCount(); patternRow++) {
-			PatternRow r = getPatternRow(patternRow);
-			ui->tablePreview->setColumnHidden(patternRow, r.enabled == false);
+			auto r = getPatternRow(patternRow);
+			ui->tablePreview->setColumnHidden(patternRow, r.enabled() == false);
 
 			QString field;
 			if(sampleEntry.size() > patternRow)
 				field = sampleEntry.at(patternRow);// m.captured(row + 1);
-			if (r.fmtFunc.length()) {
-				if (r.fmtFunc == "DateTime") {
+			if (r.fmtFunc().length()) {
+				if (r.fmtFunc() == "DateTime") {
 					QDateTime dt;
-					dt.fromString(field.toStdString().c_str(), r.fmtFrom.toStdString().c_str());
-					field = dt.toString(r.fmtTo.toStdString().c_str());
+					dt.fromString(field.toStdString().c_str(), r.fmtFrom().toStdString().c_str());
+					field = dt.toString(r.fmtTo().toStdString().c_str());
 				}
-				if (r.fmtFunc == "strptime") {
+				if (r.fmtFunc() == "strptime") {
 					DateTime dt;
-					dt.parseTime(field.toStdString().c_str(), r.fmtFrom.toStdString().c_str());
-					field = dt.toString(r.fmtTo.toStdString().c_str()).c_str();
+					dt.parseTime(field.toStdString().c_str(), r.fmtFrom().toStdString().c_str());
+					field = dt.toString(r.fmtTo().toStdString().c_str()).c_str();
 				}
-				else if (r.fmtFunc == "Regex") {
-					QRegularExpression re(r.fmtFrom, QRegularExpression::DotMatchesEverythingOption 
+				else if (r.fmtFunc() == "Regex") {
+					QRegularExpression re(r.fmtFrom(), QRegularExpression::DotMatchesEverythingOption 
 						| QRegularExpression::MultilineOption
 						//| QRegularExpression::InvertedGreedinessOption
 					);
-					field = field.replace(re, r.fmtTo);
+					field = field.replace(re, r.fmtTo());
 				}
 			}
 			ui->tablePreview->setItem(previewRow, patternRow, new QTableWidgetItem(field));
@@ -328,73 +409,107 @@ ColumnizerWidget::~ColumnizerWidget()
     delete ui;
 }
 
-void ColumnizerWidget::on_btnSave_clicked()
+void ColumnizerWidget::on_cbName_currentTextChanged(const QString &newText)
 {
-    //QString currentText = ui->cbName->currentText();
-    //saveSettings();
-    //loadSettings(currentText);
-}
-
-void ColumnizerWidget::on_btnCancel_clicked()
-{
-	window()->close();
-}
-
-void ColumnizerWidget::on_cbName_currentTextChanged(const QString &arg1)
-{
-	qDebug() << ui->cbName->findText(arg1);
+	auto currentText = ui->cbName->itemText(ui->cbName->currentIndex());
+	if (currentText != newText) {
+		//ui->cbName->setItemText(ui->cbName->currentIndex(), newText);
+		//ddx(false);
+	}	
 }
 
 void ColumnizerWidget::on_cbName_currentIndexChanged(int index)
 {
-	loadSettings();
+	ddx(true);
 }
 
-void ColumnizerWidget::on_btnDelete_clicked()
-{
-    QString name = ui->cbName->currentText();
-	//auto index = ui->cbName->currentIndex();
-	//ui->cbName->removeItem(index);
-	if (name.length() == 0)
-		return;
-
-	settings.columnizers(name).remove();
-	//name = ui->cbName->currentText();
-    loadSettings();
-}
-
-void ColumnizerWidget::on_addPatternButton_clicked()
+void ColumnizerWidget::on_insertPatternAbove_clicked()
 {
 	addPatternRow(ui->tableWidget->currentRow());
-	updatePreview();
+	ddx(false);
 }
 
-void ColumnizerWidget::on_deletePatternButton_clicked()
+void ColumnizerWidget::on_insertPatternBelow_clicked()
+{
+	addPatternRow(ui->tableWidget->currentRow() + 1);
+	ddx(false);
+}
+
+void ColumnizerWidget::on_deletePattern_clicked()
 {
 	removePatternRow(ui->tableWidget->currentRow());
+	ddx(false);
+}
+
+void ColumnizerWidget::on_renameColumnizer_clicked()
+{
+	ui->cbName->setEditable(true);
+	auto oldName = ui->cbName->lineEdit()->text();
+	/*auto edit = new QLineEdit(ui->cbName);
+	ui->cbName->setLineEdit(edit);*/
+	ui->cbName->lineEdit()->setFocus();
+	ui->cbName->blockSignals(true);
+	connect(ui->cbName->lineEdit(), &QLineEdit::editingFinished, [this, oldName]() {		
+		auto index = ui->cbName->currentIndex();
+		auto name = ui->cbName->lineEdit()->text();
+		ui->cbName->setItemText(ui->cbName->currentIndex(), ui->cbName->lineEdit()->text());
+		ui->cbName->setEditable(false);
+		ui->cbName->blockSignals(false);
+		settings.columnizers(oldName)->rename(name);
+		qDebug() << "editing finished";
+		ddx(true);
+	});
+}
+
+void ColumnizerWidget::on_duplicateColumnizer_clicked()
+{
+	auto selectedIndex = ui->cbName->currentIndex();
+	if (selectedIndex < 0)
+		return;
+	auto currentColumnizer = ui->cbName->currentText();
+	QString newColumnizer;
+	int copyIndex = 1;
+	do {
+		newColumnizer = QString("%1_Copy%2").arg(currentColumnizer).arg(copyIndex++);
+	} while (ui->cbName->findText(newColumnizer) >= 0);
+	ui->cbName->addItem(newColumnizer);
+	auto newIndex = ui->cbName->findText(newColumnizer);
+
+	auto current = settings.columnizers(currentColumnizer);
+	settings.columnizers(newColumnizer)->set(current);
+	ddx(true);
+}
+
+void ColumnizerWidget::on_deleteColumnizer_clicked()
+{
+	auto currentColumnizer = ui->cbName->currentText();
+	if (currentColumnizer.length() == 0)
+		return;
+	settings.columnizers(currentColumnizer)->remove();
+	ddx(true);
 }
 
 void ColumnizerWidget::on_patternRow_activate()
 {
-	loadSettings();
+	ddx(true);
 }
 
 void ColumnizerWidget::patternChanged(const QString&)
 {
-	updatePreview();
+	ddx(false);
 }
 
 void ColumnizerWidget::on_editSubject_textChanged()
 {
-	updatePreview();
+	ddx(false);
 }
 
 void ColumnizerWidget::on_editFieldName_textChanged(const QString&)
 {
-	updatePreview();
+	ddx(false);
 }
 
 void ColumnizerWidget::on_editPattern_textChanged(const QString&)
 {
-	updatePreview();
+	ddx(false);
 }

@@ -68,7 +68,18 @@ struct LogEntry
 	{
 		if (entries.size() == 0)
 			return false;
-		QRegularExpressionMatch match = re.match(rawMessage);
+		auto lineBreakPos = rawMessage.indexOf("\n");
+		const auto hasMulitpleLines = lineBreakPos >= 0;
+		QString firstLine;
+		QString rest;
+		if (hasMulitpleLines) {
+			firstLine = rawMessage.mid(0, lineBreakPos);
+			rest = rawMessage.mid(lineBreakPos);
+		}
+		else {
+			firstLine = rawMessage;
+		}
+		QRegularExpressionMatch match = re.match(firstLine);
 		bool ret = match.hasMatch();
 		if (!ret)
 			return false;
@@ -76,6 +87,7 @@ struct LogEntry
 			std::string s = match.captured(static_cast<int>(i + 1)).toStdString();
 			entries[i] = s;
 		}
+		entries[entries.size() - 1] += rest.toStdString();
 		return true;
 	}
 };
@@ -265,6 +277,8 @@ class Parser : public QThread
 	QMutex _mutex;
 	common::File _file;
 	quint64 _lastFileSize;
+	QString _firstLogLine;
+	common::File::FTime lastFileTime;
 	QString _fileName;
 	QString _filter;
 	QRegularExpression _qre;
@@ -291,7 +305,7 @@ protected:
 	static QMap<QString, Parser *> _parserMap;
 
 
-	bool importMessages();
+	bool importMessages(bool reload);
 
 	void fillBackEntriesCache();
 	void fillFrontEntriesCache();

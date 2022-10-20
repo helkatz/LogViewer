@@ -16,6 +16,7 @@
 #include <qjsonarray.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/Net/HTTPResponse.h>
+#include <Poco/Net/HTTPBasicCredentials.h>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/map.hpp>
@@ -141,6 +142,13 @@ public:
 
 		httpReq.setContentType("application/json");
 		httpReq.setContentLength(data.length());
+
+		Poco::Net::HTTPBasicCredentials auth;
+		auth.setPassword("Spock360##a");
+		auth.setUsername("h.katz");
+		auth.authenticate(httpReq);
+		//httpReq.setCredentials(auth);
+		//httpReq.setCredentials("h.katz", "Spock360##a");
 		std::string jdata = data.toStdString();
 		qDebug() << QUrl(suri) << jdata.c_str();
 		auto &reqBody = remote.sendRequest(httpReq);
@@ -184,7 +192,7 @@ namespace request {
 			return doc;
 #endif
 		}
-		catch (std::exception&) {
+		catch (std::exception& e) {
 			return QJsonDocument{};
 		}
 	}
@@ -363,18 +371,14 @@ namespace request {
 		if (ser.get(*this))
 			return *this;
 		for (auto keyIndex : doc.object().keys()) {
-			auto oIndexes = doc.object().value(keyIndex);
-			for (auto keyType : oIndexes.toObject().value("mappings").toObject().keys()) {
-				auto oTypes = oIndexes.toObject().value("mappings").toObject().value(keyType);
-				for (auto keyProperty : oTypes.toObject().value("properties").toObject().keys()) {
-					if (std::find_if(
-						properties.begin(), properties.end(),
-						[&keyProperty](const std::string& v) {
-						return v == keyProperty.toStdString();
-					}) == properties.end())
-						properties.push_back(keyProperty.toStdString());
-				}
-
+			auto oMappings = doc.object().value(keyIndex).toObject().value("mappings");
+			for (auto keyProperty : oMappings.toObject().value("properties").toObject().keys()) {
+				if (std::find_if(
+					properties.begin(), properties.end(),
+					[&keyProperty](const std::string& v) {
+					return v == keyProperty.toStdString();
+				}) == properties.end())
+					properties.push_back(keyProperty.toStdString());
 			}
 		}
 		ser.write(*this);

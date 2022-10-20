@@ -58,7 +58,7 @@
 		return TYPE(#NAME, impl_);					\
 	}												\
 	public: TYPE NAME(const QString& group) {		\
-		return TYPE(#NAME"/" + group, impl_);		\
+		return TYPE(group, NAME()->shared_from_this());		\
 	}												\
 	public: TYPE NAME(int group) {					\
 		return NAME(QString("%1").arg(group));		\
@@ -68,18 +68,20 @@
 	protected: void configure() override {			\
 		__VA_ARGS__;								\
 		Base::configure();							\
-	}
+	}												\
+	public:
 
 #define _BASEPATH(PATH)								\
 	protected: QString basePath() const { return #PATH; }
 
 #define PROP(TYPE, NAME, ...) \
-	public: const TYPE NAME##() const { return qvariant_cast<TYPE>(get(#NAME, __VA_ARGS__));} \
-	public: TYPE NAME##() { return qvariant_cast<TYPE>(get(#NAME, __VA_ARGS__));} \
-	public: void NAME##(TYPE v) { QVariant variant; variant.setValue(v); set(#NAME, variant);}
+	public: const TYPE NAME##() const { return qvariant_cast<TYPE>(impl_->get(#NAME, __VA_ARGS__));} \
+	public: TYPE NAME##() { return qvariant_cast<TYPE>(impl_->get(#NAME, __VA_ARGS__));} \
+	public: void NAME##(TYPE v) { QVariant variant; variant.setValue(v); impl_->set(#NAME, variant);}
 
 
 class CORE_API PropClass {
+
 protected:
 	struct StorageData {
 		bool isDirty = false;
@@ -93,7 +95,79 @@ protected:
 	using PrivatePtr = std::shared_ptr<Private>;
 	PrivatePtr impl_;
 
-	QString path() const;
+
+	struct CORE_API Private : public std::enable_shared_from_this<Private> {
+		QString name;
+		PrivatePtr root;
+		StorageMap localStorage;
+		std::shared_ptr<QSettings> persistentStorage;
+		PrivatePtr parent;
+
+		virtual void configure();
+
+		void setPath(const QString& path);
+
+		QString getPath() const;
+
+		QString fullPath(const QString& key) const;
+
+		enum class FetchKeysMode {
+			NodeKeys, NodeGroups, NodeAll,
+			AllKeys, AllGroups, All
+		};
+
+		QStringList keys(const QString& path, FetchKeysMode mode) const;
+
+		QStringList childGroups() const;
+
+		QStringList childKeys(FetchKeysMode mode) const;
+
+		QString expand(const QString& name = "") const;
+
+		void set(const PropClass::PrivatePtr other);
+
+		void set(const PropClass& other);
+
+		void set(const QString& name, const QVariant& value);
+
+		QVariant get(const QString& name, const QVariant& def = QVariant{}) const;
+
+		void remove();
+
+		void remove(const QString& name);
+
+		void rename(const QString& name);
+
+		QString path() const;
+
+		void clearCache();
+
+		void saveCache();
+
+		void configurePersistent(const QString& organisation
+			, const QString& application);
+
+		/**
+			binds a propclass to another
+			@param a propclass that will be bound as child
+			@param apply when true data from given class will overwrite this
+		*/
+		void bind(PropClass& other, bool apply = false);
+
+		void unbind();
+
+		template<typename T>
+		T as() {
+			T ret;
+			bind(ret, false);
+			return ret;
+		}
+
+		template<typename T>
+		const T as() const {
+			return const_cast<PropClass::Private* > (this)->as<T>();
+		}
+	};
 
 	template<typename T>
 	std::map<QString, T> children_(const char *name)
@@ -101,7 +175,7 @@ protected:
 		T self(QString(name), impl_);
 
 		std::map<QString, T> ret;
-		foreach(auto group, self.childGroups()) {
+		foreach(auto group, self->childGroups()) {
 			ret[group] = T(QString(name) + "/" + group, impl_);
 		}
 		return ret;
@@ -110,6 +184,8 @@ protected:
 	virtual void configure();
 
 	void setPath(const QString& path);
+	void configurePersistent(const QString& organisation
+		, const QString& application);
 public:
 	virtual ~PropClass();
 
@@ -123,7 +199,14 @@ public:
 	
 	PropClass& operator = (const PropClass&);
 
-	enum class FetchKeysMode { Keys, Groups, All };
+	PrivatePtr operator -> ();
+
+	const PrivatePtr operator -> () const;
+#if 0
+	enum class FetchKeysMode { 
+		NodeKeys, NodeGroups, NodeAll,
+		AllKeys, AllGroups, All
+	};
 	QStringList keys(const QString& path, FetchKeysMode mode) const;
 
 	QStringList childGroups() const;
@@ -142,6 +225,8 @@ public:
 
 	void remove(const QString& name);
 
+	QString path() const;
+
 	QString name() const;
 
 	void clearCache();
@@ -151,14 +236,18 @@ public:
 	void configurePersistent(const QString& organisation
 		, const QString& application);
 
-	void bindTo(PropClass& other);
+	/**
+		binds a propclass to another
+		@param a propclass that will be bound as child
+		@param apply when true data from given class will overwrite this
+	*/
+	void bind(PropClass& other, bool apply = false);
 	void unbind();
 
 	template<typename T>
 	T as() {
 		T ret;
-		ret.bindTo(*this);
-		//ret.impl_ = impl_;
+		bind(ret, false);
 		return ret;
 	}
 
@@ -166,6 +255,7 @@ public:
 	const T as() const {
 		return const_cast<PropClass*>(this)->as<T>();
 	}
+#endif
 };
 
 template<typename T>
@@ -190,22 +280,7 @@ public:
 		return list_.begin();
 	}
 };
-class CORE_API Settings : public PropClass
-{
-	void loadIntoCache(const QString& path);
-	void loadIntoLocalStorage();
 
-protected:
-	void configure() override;
-public:
-	using PropClass::PropClass;
-
-	static void setOrganisation(const QString& organisation);
-
-	static void setApplication(const QString& application);
-
-	Settings();
-};
 namespace settings_new {
 
 	SETTINGSCLASS(Filter, PropClass,

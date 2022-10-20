@@ -274,7 +274,7 @@ void MainWindow::writeSettings()
 	s.mainWindow().tabbedView(mdiArea->viewMode() == QMdiArea::TabbedView);
 
 	// remove all views from config and rewrite it
-    s.windows().remove();
+    s.windows()->remove();
 
     foreach (QMdiSubWindow *frame, mdiArea->subWindowList()) {
 		auto s = appSettings().windows(i);

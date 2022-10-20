@@ -1,0 +1,2 @@
+::gfind c:/builds/hkdev/LogViewer -name "AutogenInfo.json" -exec sed -c -i "s/\"BUILD_DIR\" : \"\//\"BUILD_DIR\" : \"C:\//g" {} ";"
+gfind c:/builds/hkdev/LogViewer -name "AutogenInfo.json" -exec sed -c -i "s#\"\/builds\/#\"C:\/builds\/#g" {} ";"

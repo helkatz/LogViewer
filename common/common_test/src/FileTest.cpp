@@ -56,6 +56,16 @@ protected:
 	static void genTestFile(const std::string& path, uint32_t lines
 		, uint32_t minMsgLen, uint32_t maxMsgLen, LineBreakMethod lb = LineBreakMethod::LF)
 	{
+		auto getLineBreak = [](LineBreakMethod lb) {
+			while (true) {
+				switch (lb) {
+				case LineBreakMethod::LF: return "\n";
+				case LineBreakMethod::CRLF: return "\r\n";
+				case LineBreakMethod::CR: return "\r";
+				case LineBreakMethod::RANDOM: lb = static_cast<LineBreakMethod>(rand() % 3);
+				}
+			}
+		};
 		FILE *f = fopen(path.c_str(), "wb+");
 		//std::string msg = "this is a testmessage for file test and this line will be randomly truncated and written to the testfile";
 		std::string msg;
@@ -66,21 +76,15 @@ protected:
 			std::string outmsg;
 			//if (i > 1) outmsg += "\n";
 			outmsg += common::sfmt("%d %s", i, msg);
-			
-			outmsg.resize(std::max(std::max(std::to_string(i).length(), minMsgLen) + 1, rand() % maxMsgLen) - (i < lines ? 1 : 0)); // -1 for following \n
-			auto getLineBreak = [](LineBreakMethod lb) {
-				while (true) {
-					switch (lb) {
-					case LineBreakMethod::LF: return "\n";
-					case LineBreakMethod::CRLF: return "\r\n";
-					case LineBreakMethod::CR: return "\r";
-					case LineBreakMethod::RANDOM: lb = static_cast<LineBreakMethod>(rand() % 3);
-					}
-				}
-			};
+			auto lineBreak = getLineBreak(lb);
+			outmsg.resize(std::max(minMsgLen, (uint32_t)(rand() % maxMsgLen))
+				- (i < lines ? strlen(lineBreak) : 0));
+			//auto lower = std::max(std::to_string(i).length(), (size_t)minMsgLen) + 1;
+			//outmsg.resize(std::max(lower, (size_t)(rand() % maxMsgLen)) - (i < lines ? strlen(lineBreak) : 0)); // -1 for following \n
+
 			fprintf(f, "%s", outmsg.c_str());
 			if (i < lines)
-				fprintf(f, getLineBreak(lb));
+				fprintf(f, lineBreak);
 		}
 		fclose(f);
 	}
@@ -88,7 +92,9 @@ protected:
 	{
 		//genTestFile("testfile.txt", lines, 20, 200);
 		//genTestFile("testfile_fixed_len_10000_100_100.txt", 10000, 100, 100);
+		//genTestFile("testfile_variable_len_huge.txt", 1000000, 20, 200);
 		//genTestFile("testfile_variable_len_10000_1_100.txt", 10000, 1, 100);
+		//genTestFile("testfile_variable_len.txt", 100000, 20, 100);
 		//genTestFile("testfile_random_linebreak.txt", lines, 20, 200, LineBreakMethod::RANDOM);
 		logger::Logger::set_level(".*", logger::Logger::Level::Warning);
 	}
@@ -145,8 +151,8 @@ TEST_F(FileTest, seek_to_begin)
 	f.open("testfile_fixed_len_10000_100_100.txt");
 	auto seekPos = 0;
 	{
-		ASSERT_EQ(0, f.posTail());
-		ASSERT_EQ(0, f.posHead());
+		ASSERT_EQ(0, f.posBegin());
+		ASSERT_EQ(0, f.posEnd());
 		ASSERT_FALSE(f.hasPrev());
 		ASSERT_TRUE(f.hasNext());
 		f.seek(seekPos);
@@ -165,8 +171,8 @@ TEST_F(FileTest, seek_to_end)
 	auto seekPos = 0;
 	{
 		f.seekEnd();
-		ASSERT_EQ(f.size(), f.posTail());
-		ASSERT_EQ(f.size(), f.posHead());
+		ASSERT_EQ(f.size(), f.posBegin());
+		ASSERT_EQ(f.size(), f.posEnd());
 		ASSERT_TRUE(f.hasPrev());
 		ASSERT_FALSE(f.hasNext());
 		
@@ -209,7 +215,7 @@ TEST_F(FileTest, seek_and_read)
 
 TEST_F(FileTest, seek_and_readprev_and_readnext)
 {
-	//genTestFile("testfile_variable_len.txt", 100000, 20, 100);
+	
 	f.open("testfile_variable_len.txt");
 	
 	auto seekPos = 0;
@@ -240,7 +246,7 @@ TEST_F(FileTest, seek_and_readprev_and_readnext)
 
 TEST_F(FileTest, seek_and_readprev_and_compare_line_nativ)
 {
-	//genTestFile("testfile_variable_len.txt", 100000, 20, 100);
+	//
 	f.open("testfile_variable_len.txt");
 	//logger::Logger::set_level(".*", logger::Logger::Level::Trace2);
 	auto seekPos = 0;
@@ -386,7 +392,7 @@ TEST_F(FileTest, frontiers)
 
 TEST_F(FileTest, readPrevLine)
 {
-//	genTestFile("testfile_variable_len_huge.txt", 1000000, 20, 200);
+	//genTestFile("testfile_variable_len_huge.txt", 1000000, 20, 200);
 	f.open("testfile_variable_len_huge.txt");
 	//log_set_scoped_level(".*", Trace2);
 	uint32_t lineNr = 1000000 + 1;

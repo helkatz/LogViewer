@@ -1,4 +1,4 @@
-
+#if 0
 #include <gtest/gtest.h>
 #include "PropertiesTest.h"
 #include <common/Logger.h>
@@ -191,3 +191,4 @@ TEST_F(PropertiesTest, convert)
 	ASSERT_EQ(string("10.333"), p.DoubleProp().toString());
 	ASSERT_EQ(10.333, p.DoubleProp().toDouble());
 }
+#endif

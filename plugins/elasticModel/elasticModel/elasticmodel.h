@@ -3,23 +3,12 @@
 #include <interfaces/logmodel.h>
 #include <utils/utils.h>
 
-class ElasticConditions: public Conditions
-{
-public:	
-	ElasticConditions()
-	{}
+using QueryParams = _settings::QueryParams;
 
-	ElasticConditions(const Conditions& other):
-		Conditions(other)
-	{}
-
-	PROPERTY(ElasticConditions, QString, connection, "");
-	PROPERTY(ElasticConditions, QString, index, "");
-	PROPERTY(ElasticConditions, QString, type, "");
-	PROPERTY(ElasticConditions, QString, user, "");
-	PROPERTY(ElasticConditions, QString, password, "");
-};
-
+SETTINGSCLASS(ElasticQueryParams, _settings::QueryParams,
+	PROP(QString, host)
+	PROP(QString, index)
+);
 
 class ElasticModelTest;
 class ElasticModel : public LogModel
@@ -36,13 +25,13 @@ protected:
 public:
 	ElasticModel(QObject *parent);
 
-	virtual QString getTitle() const override;
+	QString getTitle() const override;
 
-	void writeSettings(const QString& basePath) override;
+	void writeSettings(_settings::LogWindow&) override;
 
-	void readSettings(const QString& basePath) override;
+	void readSettings(_settings::LogWindow&) override;
 
-	bool query(const Conditions& QueryOptions) override;
+	bool query() override;
 
 	virtual QModelIndex find(const QModelIndex& fromIndex, const QStringList & columns,
 		const QString& search, bool regex, bool down) const override;

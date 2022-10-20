@@ -19,6 +19,7 @@ struct Columnizer
 	using List = QVector<Columnizer>;
 	std::string name;
 	std::string pattern;
+	std::string lastPattern;
 	std::string startPattern;
 	std::string searchPattern;
 	QList<QString> columnNames;

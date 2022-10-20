@@ -1,4 +1,4 @@
-
+#if 0
 #include <gtest/gtest.h>
 #include "PropertiesTest.h"
 #include <iostream>
@@ -60,3 +60,4 @@ TEST(PerformanceTest, PerformanceTest)
 	cpDebug("std::map done");
 
 }
+#endif

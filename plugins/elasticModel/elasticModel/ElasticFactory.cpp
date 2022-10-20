@@ -1,38 +1,10 @@
 #include "ElasticFactory.h"
 #include <gui/logview/LogView.h>
-#include <gui/querydialog.h>
 #include <gui/OpenerDialog.h>
 #include <core/common.h>
 
 #include <QLineEdit>
 #include <QCheckBox>
-
-class ElasticOpenerDialog : public OpenerDialog
-{
-	QLineEdit *host;
-	QLineEdit *user;
-	QLineEdit *password;
-	QLineEdit *index;
-public:
-	using OpenerDialog::OpenerDialog;
-	ElasticOpenerDialog(QWidget *parent)
-		: OpenerDialog(parent)
-	{
-		conne
-		properties()->addRow("host", host = new QLineEdit(this));
-		properties()->addRow("user", user = new QLineEdit(this));
-		properties()->addRow("password", password = new QLineEdit(this));
-		properties()->addRow("index", index = new QLineEdit(this));
-	}
-	ElasticConditions conditions()
-	{
-		ElasticConditions c;
-		c.host(host->text());
-		c.user(user->text());
-		c.password(password->text());
-		c.index(index->text());
-	}
-};
 
 QString ElasticOpener::name() const
 {
@@ -41,18 +13,17 @@ QString ElasticOpener::name() const
 
 QWidget *ElasticOpener::createWidget(QWidget *parent)
 {
-	return new ElasticOpenerDialog(parent);
+	return new QDialog(parent);
 }
 
-QList<Conditions> ElasticOpener::exec()
+QList<QueryParams> ElasticOpener::exec()
 {
-	QList<Conditions> ret;
-	ElasticOpenerDialog d(nullptr);
-	if (d.exec() == ElasticOpenerDialog::Accepted) {
-		ElasticConditions c;
-		c.host(d.host->text())
-		ret.push_back(d.getQueryOptions());
-	}
+	QList<QueryParams> ret;
+	ElasticQueryParams qp;
+	qp.index("logstash_syslog_ilm");
+	qp.modelClass("ElasticModel");
+	qp.host("http://test-elk-elasticsearch.test.srvint.ix2");
+	ret.push_back(qp);
 	return ret;
 }
 

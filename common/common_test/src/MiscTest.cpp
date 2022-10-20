@@ -1,4 +1,4 @@
-
+#if 0
 #include "PropertiesTest.h"
 #include "Common/ScopedEnum.h"
 using namespace common;
@@ -98,4 +98,5 @@ TEST(MiscTest, Test2)
 	B<D> b1;
 }
 
+#endif
 #endif

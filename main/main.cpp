@@ -121,7 +121,8 @@ void setTheme(QApplication& a)
 
 void testing()
 {
-	qDebug() << appSettings().childGroups();
+	log_debug() << "test";
+	qDebug() << appSettings()->childGroups();
 	auto s = appSettings().logWindowTemplates("mytemplate");
 	SettingsDialog dlg;
 	dlg.exec();
@@ -133,11 +134,8 @@ int CALLBACK WinMain(
 	_In_ LPSTR     lpCmdLine,
 	_In_ int       nCmdShow)
 {
-	
-	Settings::setOrganisation("ACOM");
-	Settings::setApplication("LogViewer");
-
 	_putenv("QT_MESSAGE_PATTERN=\"[%{type}] %{appname} %{threadid} - %{message}\"");
+	_putenv("QT_DEBUG_PLUGINS=1");
 	//_putenv("QT_FATAL_WARNINGS=");
 	qRegisterMetaTypeStreamOperators<ColorList>("ColorList");	
 	initLogging();
@@ -175,7 +173,7 @@ int CALLBACK WinMain(
 	Logger::set_level(".*common.*", Logger::Level::Warning);
 #endif	
 	log_trace(0) << "startup";
-
+	//testing();
  
 	plugin_factory::Factory::LoadPlugins();
 

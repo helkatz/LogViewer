@@ -14,12 +14,12 @@ int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);
 	::testing::GTEST_FLAG(filter) = 
-		"xxFileTest*"
+		"FileTest*"
 		":xxCronTrigger*"
 		":xxPerformanceTest*"
 		":xxPropertiesDataTest*"
-		":PropertiesTest_2_0*"
-		":MiscTest*";
+		":--PropertiesTest_2_0*"
+		":--MiscTest*";
 	//::testing::GTEST_FLAG(filter) = "CronTrigger*";
 	logger::Logger::set_level(".*", logger::Logger::Level::Trace10);
 	logger::handlers::ConsoleMessageHandler consoleHandler;

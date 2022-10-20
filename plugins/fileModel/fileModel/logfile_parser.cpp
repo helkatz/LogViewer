@@ -12,6 +12,8 @@
 #include <QSqlField>
 #include <QSqlError>
 #include <QThread>
+
+#include <boost/regex.h>
 #include <string>
 #include <deque>
 #include <iostream>
@@ -52,10 +54,33 @@ Parser::~Parser()
 
 void Parser::refresh()
 {
-	if (_lastFileSize == _file.size())
+	common::File::FTime times;
+	_file.getFileTime(times);
+	auto err = GetLastError();
+	bool fcreateChanged = memcmp(&lastFileTime.creationTime, &times.creationTime, sizeof(times.creationTime)) != 0;
+	bool flastWriteChanged = memcmp(&lastFileTime.lastWriteTime, &times.lastWriteTime, sizeof(times.lastWriteTime)) != 0;
+	auto fsize = _file.size();
+	bool reload = fcreateChanged || fsize < _lastFileSize;
+	bool amend = !fcreateChanged && flastWriteChanged && fsize > _lastFileSize;
+	lastFileTime = times;
+
+	if (flastWriteChanged && fsize == _lastFileSize || _firstLogLine.length() == 0) {
+		common::File tmpFile;
+		tmpFile.open(_file.getFileName());
+		auto line = tmpFile.readLine();
+		if (line != _firstLogLine) {
+			reload = true;
+		}
+		_firstLogLine = line;
+	}
+	
+
+	if (!reload && !amend)
 		return;
+	//if (_lastFileSize == _file.size() && !ftimeChanged)
+	//	return;
 	if (_virtualRows == false) {
-		importMessages();
+		importMessages(reload);
 	}
 	else {
 		_file.reset();
@@ -100,7 +125,7 @@ QString Parser::getFileName() const
 
 bool Parser::open(const FileQueryParams& qp)
 {
-	LogFileSettings settings;
+	auto settings = appSettings()->as<LogFileSettings>();
 	if (_file.open(qp.fileName().toStdString().c_str()) == false)
 		return false;
 	
@@ -113,7 +138,7 @@ bool Parser::open(const FileQueryParams& qp)
 
 	_virtualRows = _file.size() > settings.virtualRowsMinSize() * 1024 * 1024;
 	if (_virtualRows == false) {
-		importMessages();
+		importMessages(true);
 	}
 	else {
 		calcRowCount();
@@ -220,7 +245,7 @@ bool Parser::findColumnizer(const QString& preferred)
 		return false;
 
 	_qre.setPattern(_columnizer->pattern.c_str());
-	_qre.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);
+	_qre.setPatternOptions(QRegularExpression::DotMatchesEverythingOption | QRegularExpression::MultilineOption);
 	RE2::Options re_options;
 	re_options.set_dot_nl(true);
 	_re = std::make_shared<RE2>(_columnizer->pattern.c_str(), re_options);
@@ -331,10 +356,14 @@ bool Parser::readNextLogEntry(common::File& file, LogEntry& entry)
 {
 	bool startMatched = false;
 	bool first = true;
+	quint64 firstMatchSize;
 	quint64 lineStartPos;
 	while (file.hasNext()) {
 
 		lineStartPos = file.posEnd();
+		if (lineStartPos == 37940) {
+			printf("");
+		}
 		char *line = file.peekLine();
 		if (*line == 0) {
 			if (file.posEnd() == file.size()) {
@@ -361,6 +390,7 @@ bool Parser::readNextLogEntry(common::File& file, LogEntry& entry)
 			if (startMatched)
 				break;
 			entry.filePos = lineStartPos;
+			firstMatchSize = strlen(line);
 			startMatched = true;
 			file.keepBufferAtOnce(line);
 		}
@@ -372,9 +402,24 @@ bool Parser::readNextLogEntry(common::File& file, LogEntry& entry)
  	}
 	if (startMatched == false)
 		return false;
+	//QString rawMessage = file.getBufferAtOnce();
 	entry.rawMessage = file.getBufferAtOnce();
+	entry.rawMessage.remove(10000);
 	entry.size = lineStartPos - entry.filePos;
+
+	//auto pattern = _columnizer->pattern.substr(_columnizer->pattern.length() - _columnizer->lastPattern.length());
+	//re2::RE2::Arg arg;
+	//bool match = RE2::FullMatch(entry.rawMessage.toStdString().c_str()
+	//	, *_re
+	//	, arg);
 	entry.parseColumns(_qre);
+	//boost::RegEx re(_re->pattern());
+	//if (re.Match(rawMessage.toStdString())) {
+	//	re.Matched(0);
+	//	re.Matched(1);
+	//	re.Matched(4);
+	//}
+	//entry.rawMessage.swap(rawMessage);
 	return true;
 }
 
@@ -698,14 +743,13 @@ __LReturn:
 	return true;
 }
 
-bool Parser::importMessages()
+bool Parser::importMessages(bool reload)
 {
 	//#define WRITE_OUT
 	common::File file;
 	//file.open(_fileName.toStdString());
-
 	LogEntry entry(columnNames().size());
-	if (_file.size() < _lastFileSize || _entryHeads.size() == 0) {
+	if (reload || _file.size() < _lastFileSize || _entryHeads.size() == 0) {
 		_file.reset();
 		_entryHeads.clear();
 		_rows = 0;
@@ -744,7 +788,7 @@ bool Parser::importMessages()
 
 void Parser::run()
 {
-	importMessages();
+	importMessages(true);
 	return;
 }
 

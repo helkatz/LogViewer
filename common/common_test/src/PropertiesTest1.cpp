@@ -1,3 +1,4 @@
+#if 0
 #include "PropertiesTest.h"
 using namespace common;
 
@@ -131,3 +132,4 @@ TEST(PropertiesTest1, compare)
 	ASSERT_TRUE(ts1 == ts2);
 }
 
+#endif

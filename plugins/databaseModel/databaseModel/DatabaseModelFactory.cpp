@@ -3,34 +3,10 @@
 #include <gui/logview/LogView.h>
 #include <gui/ConnectionWidget.h>
 #include <gui/OpenerDialog.h>
+#include <gui/OpenerDialog.h>
 #include <core/common.h>
 
 #include <QLineEdit>
-class DatabaseOpenerDialog : public OpenerDialog
-{
-	QLineEdit* database;
-	QLineEdit* tableName;
-	QLineEdit* connectionName;
-
-public:
-	using OpenerDialog::OpenerDialog;
-	DatabaseOpenerDialog(QWidget* parent)
-		: OpenerDialog(parent)
-	{
-		properties()->addRow("connectionName", connectionName = new QLineEdit(this));
-		properties()->addRow("database", database = new QLineEdit(this));
-		properties()->addRow("tableName", tableName = new QLineEdit(this));
-	}
-
-	DatabaseOpenerDialog conditions()
-	{
-		DatabaseQueryParams c;
-		c.database(database->text());
-		c.connectionName(connectionName->text());
-		c.database(database->text());
-		c.tableName(tableName->text());
-	}
-};
 
 QString DatabaseOpener::name() const
 {
@@ -47,6 +23,7 @@ QList<QueryParams> DatabaseOpener::exec()
 	DatabaseOpenerDialog d(nullptr);
 	auto dlgRet = d.exec();
 	QList<QueryParams> ret;
+	ret.push_back(d.qp);
 	return ret;
 }
 

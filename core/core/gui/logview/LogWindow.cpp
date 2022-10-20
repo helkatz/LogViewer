@@ -30,7 +30,7 @@ LogWindow *LogWindow::create(LogWindow::CreateParams& params)
 	else {
 		return nullptr;
 	}
-	qp.unbind();
+	qp->unbind();
 	LogWindow * window = nullptr;
 	try {
 		QSharedPointer<LogModel> model(
@@ -121,7 +121,16 @@ void LogWindow::setModel(QSharedPointer<LogModel> model)
 	model_ = model;
 	mainView_->setModel(model.data());
 	detailView_->setModel(model.data());
-	connect(model.data(), SIGNAL(layoutChanged()), mainView_.data(), SLOT(dataChanged()));
+	connect(model.data(), &LogModel::layoutChanged, this, [this]() {
+		if (model_->rowCount() >= mainView_->selectionModel()->currentIndex().row()) {
+			setFollowMode(true);
+			return;
+			//mainView_->selectionModel()->setCurrentIndex(model_->index(model_->rowCount(), 0),));
+		}
+		detailView_->currentRowChanged(mainView_->selectionModel()->currentIndex(), mainView_->selectionModel()->currentIndex());
+		});
+
+	connect(model.data(), SIGNAL(layoutChanged()), mainView_.data(), SLOT(dataChanged(QModelIndex, QModelIndex)));
 	connect(mainView_.data(), SIGNAL(scrolltable(QModelIndex)), mainView_.data(), SLOT(doScroll(QModelIndex index)));
 	connect(model.data(), SIGNAL(setModifiedPos(quint32)), mainView_.data(), SLOT(setModifiedPos(quint32)));
 	connect(mainView_->selectionModel(), SIGNAL(currentRowChanged(QModelIndex, QModelIndex)),
@@ -131,7 +140,7 @@ void LogWindow::setModel(QSharedPointer<LogModel> model)
 
 void LogWindow::writeSettings(_settings::LogWindow& s)
 {
-	model_->writeSettings(s.queryParams());
+	model_->writeSettings(s);
 	mainView_->writeSettings(s);
 	detailView_->writeSettings(s);
 	s.splitter(saveState());
@@ -139,7 +148,7 @@ void LogWindow::writeSettings(_settings::LogWindow& s)
 
 void LogWindow::readSettings(_settings::LogWindow& s)
 {
-	model_->readSettings(s.queryParams());
+	model_->readSettings(s);
 	mainView_->readSettings(s);
 	detailView_->readSettings(s);
 	restoreState(s.splitter());

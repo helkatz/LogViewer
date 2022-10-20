@@ -13,11 +13,13 @@ public:
 };
 
 TEST_F(FilePluginTest, random_read)
-{
-	FileConditions conditions;
+{	
+	FileQueryParams conditions;
+	conditions->bind(appSettings());
 	conditions.fileName("c:/logs/logviewer.log");
-	setQueryConditions(conditions);
-	query(conditions);
+	conditions.columnizer("default_columnizer");
+	setQueryParams(conditions);
+	query();
 
 	for (int i = 1;; i++) {
 		auto index = createIndex(std::rand() % rowCount(), 0);
@@ -25,7 +27,7 @@ TEST_F(FilePluginTest, random_read)
 		if (i % 1000 == 0)
 			qDebug() << i;
 		if (i % 100000 == 0)
-			query(conditions);
+			query();
 	}
 }
 

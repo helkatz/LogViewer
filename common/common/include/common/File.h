@@ -1,27 +1,30 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
-
+#include <common/common.h>
+#include <windows.h>
 #include <fstream>
+#include <fileapi.h>
 #include <time.h>
 #include <assert.h>
 //#include <logger/Logger.h>
-
+#undef max
+#undef min
 template<typename T, typename... ARGS>
 std::string fmt(const T& value)
 {
 }
 namespace common
 {
-	class File
+	class COMMON_API File
 	{
 		struct BufferBase
 		{
 			static char noLF;
-			char *end{ nullptr };
-			char *line_begin{ nullptr };
-			char *line_end{ nullptr };
-			char *lastCR{ &noLF };
-			char *lastLF{ &noLF };
+			char* end{ nullptr };
+			char* line_begin{ nullptr };
+			char* line_end{ nullptr };
+			char* lastCR{ &noLF };
+			char* lastLF{ &noLF };
 			BufferBase()
 			{
 				reset();
@@ -64,12 +67,12 @@ namespace common
 				other = tmp;
 			}
 
-			int clearCRLF(char *buffer)
+			int clearCRLF(char* buffer)
 			{
 				lastLF = lastCR = &noLF;
 				if (*buffer == '\r') {
 					lastCR = buffer;
-					if(*(buffer + 1) == '\n')
+					if (*(buffer + 1) == '\n')
 						lastLF = buffer + 1;
 				}
 				else if (*buffer == '\n') {
@@ -87,13 +90,13 @@ namespace common
 				assert(*lastLF != ' ' && *lastCR != ' ');
 
 				*lastLF = '\n';
-				*lastCR = '\r';				
+				*lastCR = '\r';
 				int size = (lastCR != &noLF) + (lastLF != &noLF);
 				lastLF = lastCR = &noLF;
 				return size;
 			}
 		};
-		struct Buffer: BufferBase
+		struct Buffer : BufferBase
 		{
 			uint32_t max_size{ 100000000 };	// max buffer size 
 			uint32_t init_size{ 0x10000 };	// init or grow size
@@ -101,11 +104,11 @@ namespace common
 			uint32_t posInBuffer{ 0 };		// based on buffer start
 			uint64_t posInFile{ 0 };		// based on file start
 			uint64_t totalReaded{ 0 };
-			char *allocated{ nullptr };
-			char *working{ nullptr };
-			char *keep_at_once_end{ nullptr };
-			char *keep_at_once_begin{ nullptr };
-			
+			char* allocated{ nullptr };
+			char* working{ nullptr };
+			char* keep_at_once_end{ nullptr };
+			char* keep_at_once_begin{ nullptr };
+
 			BufferBase save;
 
 
@@ -119,7 +122,7 @@ namespace common
 			{
 				BufferBase::shift(offset);
 				if (save.end)
-					save.shift(offset);				
+					save.shift(offset);
 				if (keep_at_once_end)
 					keep_at_once_end += offset;
 				if (keep_at_once_begin)
@@ -128,14 +131,14 @@ namespace common
 
 			uint32_t readed() { return static_cast<uint32_t>(totalReaded - posInFile); }
 
-			char *readForwardToLineEnd()
+			char* readForwardToLineEnd()
 			{
 				if (readed() == 0) {
 					return nullptr;
 				}
 
-				while (*line_end > '\r' || 
-					*line_end != '\n' && *line_end != '\r' && *line_end) 
+				while (*line_end > '\r' ||
+					*line_end != '\n' && *line_end != '\r' && *line_end)
 					line_end++;
 
 				if (*line_end == '\n' || *line_end == '\r') {
@@ -145,7 +148,7 @@ namespace common
 				}
 				return nullptr;
 			}
-			char *readBackwardToLineBegin()
+			char* readBackwardToLineBegin()
 			{
 				// when line_begin is in \n then the previous line is required
 				if (line_begin == working && (*line_begin == '\n' || *line_begin == '\r'))
@@ -156,12 +159,12 @@ namespace common
 					return ++line_begin;
 				}
 				if (*(line_begin) == '\r') {
-					return line_begin += (*(line_begin+1) == '\n' ? 2 : 1);
+					return line_begin += (*(line_begin + 1) == '\n' ? 2 : 1);
 				}
 				return nullptr;
 			}
 
-			uint8_t getPrevLineBreakSize() 
+			uint8_t getPrevLineBreakSize()
 			{
 				return (*(line_begin - 1) == '\n')
 					? 1 + (*(line_begin - 2) == '\r')
@@ -181,7 +184,7 @@ namespace common
 		static const char peeked = 2;
 		static const char prepare_peek = 4;
 
-		mutable FILE *_fs{ nullptr };
+		mutable FILE* _fs{ nullptr };
 		std::string _fileName;
 		Buffer _buf;
 
@@ -189,20 +192,20 @@ namespace common
 			static const int _max_forward{ std::numeric_limits<int>::max() };
 			static const int _max_backward{ std::numeric_limits<int>::min() };
 			int _size = 0;
-			explicit ReadSize(const int size): _size(size) {
+			explicit ReadSize(const int size) : _size(size) {
 
 			}
 
 			static ReadSize max_forward() { return ReadSize{ _max_forward }; };
 			static ReadSize max_backward() { return ReadSize{ _max_backward }; };
-			bool is_max() { return _size == _max_forward || _size == _max_backward;  }
-			bool is_forward(){ return _size > 0; }
+			bool is_max() { return _size == _max_forward || _size == _max_backward; }
+			bool is_forward() { return _size > 0; }
 			bool is_backward() { return _size < 0; }
 		};
 
 		char _flags{ none };
 		char _flags_save{ none };
-		
+
 
 		bool _isClone{ false };
 		uint32_t readBuffer(const ReadSize = ReadSize::max_forward());
@@ -255,26 +258,34 @@ namespace common
 
 		void seekEnd();
 
-		char *readPrevLine();
+		char* readPrevLine();
 
-		char *readLine();
+		char* readLine();
 
-		char *peekLine();
+		char* peekLine();
 
-		char *readPrevLine(const char *condition);
+		char* readPrevLine(const char* condition);
 
-		char *readLine(const char *condition);
+		char* readLine(const char* condition);
 
-		char *getCurrentLine();
+		char* getCurrentLine();
 
 		void keepBufferAtOnce(bool enable);
 
-		void keepBufferAtOnce(char *ptr);
+		void keepBufferAtOnce(char* ptr);
 
-		char *getBufferAtOnce();
+		char* getBufferAtOnce();
 
 		const std::string& getFileName() const { return _fileName; }
 
 		void setBufSize(size_t);
+
+		struct FTime {
+			FILETIME creationTime;
+			FILETIME lastAccessTime;
+			FILETIME lastWriteTime;
+		};
+
+		bool getFileTime(FTime& times);
 	};
 }

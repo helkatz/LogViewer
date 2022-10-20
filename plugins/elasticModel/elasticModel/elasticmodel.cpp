@@ -1,7 +1,6 @@
 #include "elasticmodel.h"
 #include "private.h"
 
-#include <core/logupdater.h>
 #include <core/common.h>
 #include <utils/utils.h>
 
@@ -83,17 +82,19 @@ __LTryAgain:
 	}
 }
 
-bool ElasticModel::query(const Conditions &queryConditions)
+bool ElasticModel::query()
 {	
 	log_func_entry_leave();
+
+	auto qp = qp_->as<ElasticQueryParams>();
 
 	_dataCache.clear();
 	_columnsInformation.clear();
 
 	uint32_t col = 0;
-	impl_->request_.host = impl_->conditions_.host();
-	impl_->request_.index = impl_->conditions_.index();
-	impl_->request_.type = impl_->conditions_.type();
+	impl_->request_.host = qp.host();
+	impl_->request_.index = qp.index();
+	//impl_->request_.type = impl_->conditions_.type();
 	request::Mappings::Response mappings;
 	request::QueryConditions criteria;
 	impl_->request_.fetch<request::Mappings>(criteria, mappings);
@@ -105,7 +106,7 @@ bool ElasticModel::query(const Conditions &queryConditions)
 		setHeaderData(col++, Qt::Horizontal, tr("%1").arg(capitalize(name.c_str())));
 	}
 
-	impl_->loadQueryRangeList(queryConditions);
+	impl_->loadQueryRangeList(impl_->conditions_);
 
 	observer_.install(std::chrono::milliseconds{ 1000 }, [this] {
 		if(loadData(_rows))
@@ -119,22 +120,22 @@ bool ElasticModel::queryWithCondition(QString sqlFilter, int limit)
 {
     impl_->conditions_.queryString(sqlFilter);
     impl_->conditions_.limit(limit);
-    return query(impl_->conditions_);
+    return query();
 }
 
-void ElasticModel::writeSettings(const QString &basePath)
+void ElasticModel::writeSettings(_settings::LogWindow& )
 {
-    impl_->conditions_.writeSettings(basePath);
+    //impl_->conditions_.writeSettings(basePath);
 }
 
-void ElasticModel::readSettings(const QString &basePath)
+void ElasticModel::readSettings(_settings::LogWindow&)
 {
-    impl_->conditions_.readSettings(basePath);
+    //impl_->conditions_.readSettings(basePath);
 }
 
 QString ElasticModel::getTitle() const
 {
-    return impl_->conditions_.host();
+    return impl_->conditions_.connection();
 }
 
 void ElasticModel::observedObjectChanged(const QString& id, const int maxId)

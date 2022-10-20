@@ -12,12 +12,18 @@
 #include <boost/range/adaptor/reversed.hpp>
 
 namespace logger {
-	class LoggerSettings
+	class COMMON_API LoggerSettings
 	{
 		friend class Logger;
 		static std::vector<LoggerSettings> patternSettings;
 		std::string namePattern;
 		Logger::Level level;
+
+		//static std::vector<LoggerSettings>& patternSettings() 
+		//{
+		//	static std::vector<LoggerSettings> patternSettings;
+		//	return patternSettings;
+		//}
 	public:
 		LoggerSettings()
 			: level(Logger::Level::None)
@@ -28,12 +34,12 @@ namespace logger {
 		{}
 		static void add(const LoggerSettings& setting)
 		{
-			patternSettings.insert(patternSettings.begin(), setting);
+			LoggerSettings::patternSettings.insert(patternSettings.begin(), setting);
 		}
 
 		static bool find(const std::string& loggerName, LoggerSettings& setting)
 		{
-			for (auto it : patternSettings) {
+			for (auto it : LoggerSettings::patternSettings) {
 				std::tr1::regex r(it.namePattern);
 				if (std::tr1::regex_match(loggerName.begin(), loggerName.end(), r) == false)
 					continue;
@@ -116,16 +122,4 @@ namespace logger {
 		}
 		*join_mode = false;
 	}
-
-
-	std::vector<LoggerSettings> LoggerSettings::patternSettings;
-	std::atomic<unsigned __int64> LogStreamPrivate::id;
-	std::map<std::string, Logger *> LoggerPrivate::loggers;
-	std::vector<Logger::MessageHandler *> LoggerPrivate::messageHandlers;
-	std::mutex LoggerPrivate::loggers_mutex;
-	Logger& LoggerPrivate::rootLogger = Logger::get("ROOT");
-	LoggerCache<const char *> LoggerPrivate::lc[maxCache + 1];
-	ThreadLocal<bool> LoggerPrivate::join_mode;
-	ThreadLocal<std::vector<Message>> LoggerPrivate::joinedMessages;
-
 }

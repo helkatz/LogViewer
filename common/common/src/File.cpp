@@ -1,6 +1,6 @@
 #include <common/File.h>
 #include <common/Logger.h>
-
+#include <io.h>
 #include <boost/format.hpp>
 
 #define BUFFER_GAP 10
@@ -554,5 +554,15 @@ namespace common {
 	{
 		_buf.init_size = size;
 		_buf.resize(size, true);
+	}
+
+	bool File::getFileTime(FTime& times)
+	{
+		HANDLE h  = (HANDLE)_get_osfhandle(fileno(_fs));
+		return GetFileTime(h
+			, &times.creationTime
+			, &times.lastAccessTime
+			, &times.lastWriteTime
+		);
 	}
 }

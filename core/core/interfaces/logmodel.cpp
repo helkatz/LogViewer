@@ -41,14 +41,16 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
     return "undef index";
 }
 
-void LogModel::writeSettings(_settings::QueryParams& s)
+void LogModel::writeSettings(_settings::LogWindow& s)
 {
-	s.set(qp_);
+	s.queryParams()->set(qp_);
+	//qp_->setPath("queryParams");
+	//s->set(qp_);
 	//qp_.saveCache();
     //qp_.writeSettings(s);
 }
 
-void LogModel::readSettings(_settings::QueryParams&)
+void LogModel::readSettings(_settings::LogWindow& s)
 {
     // do not read queryParams because they are readed on startup
 }
@@ -155,10 +157,10 @@ void LogModel::setQueryParams(const QueryParams& qp)
 
 void LogModel::followTail(bool enabled)
 {
-	if (enabled)
-		observer_.run();
-	else
-		observer_.pause();
+	//if (enabled)
+	//	observer_.run();
+	//else
+	//	observer_.pause();
 }
 
 void LogModel::addView(LogView *view)

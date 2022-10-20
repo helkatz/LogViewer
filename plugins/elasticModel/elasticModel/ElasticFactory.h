@@ -10,7 +10,7 @@ public:
 
 	QWidget *createWidget(QWidget *parent) override;
 
-	QList<Conditions> exec() override;
+	QList<QueryParams> exec() override;
 };
 
 class ElasticPlugin : public QObject, public plugin_factory::Factory

@@ -29,7 +29,7 @@ ConnectionWidget::ConnectionWidget(QWidget *parent)
 
     connect(parent, SIGNAL(saveSettings()), this, SLOT(saveSettings()));
 
-    loadSettings();
+    //loadSettings();
 
     //connect(newButton, &QPushButton::clicked, this, [this]() {
     //    getTabWidget()->newConnection();
@@ -54,9 +54,6 @@ void ConnectionWidget::disableButtons(boost::optional<bool> add
     , boost::optional<bool> del, boost::optional<bool> save)
 {
     return;
-    if (add.is_initialized()) ui->addButton->setDisabled(*add);
-    if (del.is_initialized()) ui->deleteButton->setDisabled(*del);
-    if (save.is_initialized()) ui->saveButton->setDisabled(*save);
 }
 
 QString ConnectionWidget::driverName() const
@@ -112,7 +109,7 @@ void ConnectionWidget::loadSettings()
     ui->nameCombo->blockSignals(true);
     ui->nameCombo->clear();
 
-    auto names = settings.connections().childGroups().filter(QRegExp("(?!__cloned__db).*"));
+    auto names = settings.connections()->childGroups().filter(QRegExp("(?!__cloned__db).*"));
     ui->nameCombo->addItems(names);
 
     if (selectedName.length() == 0 || ui->nameCombo->findText(selectedName) == -1) {
@@ -173,7 +170,7 @@ void ConnectionWidget::on_deleteButton_clicked()
 {
     DatabaseSettings settings;
     QString name = ui->nameCombo->currentText();
-    settings.connections(name).remove();
+    settings.connections(name)->remove();
     loadSettings();
 }
 void ConnectionWidget::on_testButton_clicked()

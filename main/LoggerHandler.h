@@ -74,6 +74,7 @@ namespace logger {
 			ss
 				<< boost::chrono::time_point_cast<boost::chrono::nanoseconds>(msg.time)
 				<< "|" << msg.level
+				<< "|" << msg.name
 				<< "|" << msg.context.function
 				<< "|" << msg.message
 				<< "\n"

@@ -44,7 +44,7 @@ struct ElasticModel::Private
 	request::QueryRange getQueryRangeFromIndex(quint64 index);
 
 	quint64 loadQueryRangeList(
-		const ElasticConditions& condtitions,
+		const ElasticQueryParams& condtitions,
 		quint64 resolution = 1000);
 
 	static void increaseResolution(const request::IndexToTimeRange& item
@@ -55,7 +55,7 @@ struct ElasticModel::Private
 	uint32_t maxDocsPerRange_ = 1000;	// maximum doc_count in a indexToTimeRange object
 	uint32_t loadDocsAtOnce_ = 200;		// how many docs should be loaded on data reload
 	mutable std::mutex mutex_;
-	ElasticConditions conditions_;
+	ElasticQueryParams conditions_;
 	ElasticModel& owner_;
 };
 
@@ -73,7 +73,7 @@ void ElasticModel::Private::increaseResolution(const request::IndexToTimeRange& 
 }
 
 quint64 ElasticModel::Private::loadQueryRangeList(
-	const ElasticConditions & condtitions, quint64 resolution)
+	const ElasticQueryParams& condtitions, quint64 resolution)
 {
 	log_func_entry_leave();
 	//log_trace(0) << "resolution" << resolution << "updateItem=" << (itemToUpdate != nullptr);
@@ -112,9 +112,9 @@ request::QueryRange ElasticModel::Private::getQueryRangeFromIndex(quint64 index)
 			auto item = histogram_.indexToTimeRange.end() - 1;
 			// when index exeeds then we have to update the end
 			if (index >= item->index + item->count) {
-				ElasticConditions conditions = conditions_
-					.fromTime(item->toTime + 1)
-					.toTime(std::numeric_limits<time_t>::max());
+				ElasticQueryParams conditions = conditions_;
+				conditions.fromTime(item->toTime + 1);
+				conditions.toTime(std::numeric_limits<time_t>::max());
 
 				resolution = 86400 * 365 * 1000;
 
@@ -162,9 +162,9 @@ request::QueryRange ElasticModel::Private::getQueryRangeFromIndex(quint64 index)
 			// so we reload only that item with an higher resolution and merge it into the current list
 			increaseResolution(*item, resolution);
 
-			ElasticConditions conditions = conditions_
-				.fromTime(item->fromTime)
-				.toTime(item->toTime);
+			auto conditions = conditions_;
+			conditions.fromTime(item->fromTime);
+			conditions.toTime(item->toTime);
 
 			log_trace(0) << "updateItem " << item - histogram_.indexToTimeRange.begin() 
 				<< item->index << histogram_.indexToTimeRange.front().index;

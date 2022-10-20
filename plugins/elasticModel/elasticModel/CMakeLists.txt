@@ -30,8 +30,8 @@ target_link_libraries(
     ${PROJECT_NAME} 
 		core
 		Qt5::Widgets Qt5::Sql
-		common_widgets
-		common re2
+		#common_widgets
+		#common re2
     )
 conan_target_link_libraries(${PROJECT_NAME})
 

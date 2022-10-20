@@ -106,7 +106,7 @@ int LogFileModel::fetchMoreFromEnd(quint32 items)
 
 bool LogFileModel::query()
 {
-	auto qp = qp_.as<FileQueryParams>();
+	auto qp = qp_->as<FileQueryParams>();
     if (!impl_->parser) {
         impl_->parser = QSharedPointer<Parser>(new Parser(this, qp.fileName()));
 		//impl_->parser->setFilter(qp.queryString());
@@ -138,14 +138,14 @@ bool LogFileModel::query()
 	observer_.install(std::chrono::milliseconds{ 1000 }, [this] {
 		impl_->parser->refresh();
 	});
-
+	observer_.run();
     emit layoutChanged();
     return true;
 }
 
 bool LogFileModel::queryWithCondition(QString sqlFilter, int limit)
 {
-	auto qp = qp_.as<FileQueryParams>();
+	auto qp = qp_->as<FileQueryParams>();
     qp.queryString(sqlFilter);
     qp.limit(limit);
     return query();
@@ -153,7 +153,7 @@ bool LogFileModel::queryWithCondition(QString sqlFilter, int limit)
 
 QString LogFileModel::getTitle() const
 {
-	auto qp = qp_.as<FileQueryParams>();
+	auto qp = qp_->as<FileQueryParams>();
     return qp.fileName();
 }
 

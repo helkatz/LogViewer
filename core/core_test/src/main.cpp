@@ -7,8 +7,8 @@
 #define CONSOLE
 void setGTestFilter() {
 	testing::FLAGS_gtest_filter =
-		//":*persistent_storage*"
-		":*MessageFormatterTest*"
+		":*Settings*"
+		//":*MessageFormatterTest*"
 		//":*keys*"
 		//":*bindTo*"
 		;

@@ -6,7 +6,7 @@ message("   - ${PROJECT_NAME}")
 
 file(GLOB_RECURSE sources src/* include/*)
 
-add_library(${PROJECT_NAME} STATIC ${sources})
+add_library(${PROJECT_NAME} SHARED ${sources})
 
 SOURCE_GROUP_BY_FOLDER(sources)
 

@@ -20,6 +20,7 @@ DetailView::DetailView(QWidget *parent):
 	_highligter(document())
 {	
 	setContextMenuPolicy(Qt::CustomContextMenu);
+	setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOn);
 	connect(this, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
 }
 
@@ -99,15 +100,19 @@ void DetailView::currentRowChanged(QModelIndex current, QModelIndex last)
 	QString out;
 	for (int col = 0; col < _logModel->columnCount(); col++) {
 		if (_visibleColumns[col]) {
-			out += _logModel->data(current.sibling(current.row(), col), Qt::DisplayRole).toString() + "<br>";
+			out += _logModel->data(current.sibling(current.row(), col), Qt::DisplayRole).toString() + "\n";
 		}
 	}
+	this->setPlainText(out);
+	return;
 	//MessageFormatter formatter;
 	//formatter.format(out);
 	////Highlighter highlighter(document());
 	//this->setText(out);
 	//return;
 	_lines = out.split("\n");
+	verticalScrollBar()->setMaximum(_lines.size());
+	verticalScrollBar()->setValue(100);
 	_currentIndex = current;
 	auto setText = [this](quint32 fromLine) {
 		QFontMetrics metrics = fontMetrics();
@@ -115,15 +120,17 @@ void DetailView::currentRowChanged(QModelIndex current, QModelIndex last)
 		log_trace(0) << "changed" << fromLine << "itemsPerPage" << itemsPerPage;
 		QString text;
 		for (auto index = fromLine; index < fromLine + itemsPerPage && index < _lines.size(); ++index)
-			text += _lines.at(index) + "\n";
-		blockSignals(true);		
+			text += _lines.at(index) + "<br>";
+		//blockSignals(true);		
 		verticalScrollBar()->blockSignals(true);
-		this->setText(text);
-		verticalScrollBar()->setMaximum(_lines.size() - itemsPerPage);
-		//verticalScrollBar()->setValue(fromLine);
+		if(text.length())
+			this->setText(text);
+		verticalScrollBar()->setMaximum(_lines.size());
+		//verticalScrollBar()->setMaximum(_lines.size() - itemsPerPage);
+		verticalScrollBar()->setValue(fromLine);
 		verticalScrollBar()->blockSignals(false);
 
-		blockSignals(false);
+		//blockSignals(false);
 	};
 	auto displayText = [this](QModelIndex index, bool full) {
 		QString out;
@@ -162,25 +169,7 @@ void DetailView::currentRowChanged(QModelIndex current, QModelIndex last)
 		//blockSignals(false);
 	};
 
-	_conn = connect(verticalScrollBar(), &QScrollBar::valueChanged, this, [this, setText, displayText, current](int value) {
-		setText(value);
-		//QObject::disconnect(_conn);
-		//displayText(_currentIndex, true);
-		//verticalScrollBar()->setValue(value);
-		
-	});
-	setText(0);
-	//displayText(_currentIndex, false);
-	//this->is
-	//out = utils::ReplaceAll(out.toStdString(), "\n", "<br>").c_str();
-	//out = utils::ReplaceAll(out.toStdString(), " ", "&nbsp;").c_str();
-	//QVariant v = _logModel->data(current, Qt::DisplayRole);
-	//this->setText(out);
-
-	//_doc.setHtml(out);
-	//this->setDocument(&_doc);
-	//this->setPlainText(out);
-	this->setHtml(out);
+	this->setPlainText(out);
 }
 
 

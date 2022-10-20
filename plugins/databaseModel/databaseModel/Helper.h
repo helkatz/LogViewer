@@ -32,7 +32,7 @@ namespace helper {
 
     static QSqlDatabase getDatabase(const QString& name, const QString& driver = "")
     {
-        DatabaseSettings settings;
+        auto settings = appSettings()->as< DatabaseSettings>();
         QSqlDatabase db;
         if (QSqlDatabase::contains(name) == false) {
             auto s = settings.connections(name);
